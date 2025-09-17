@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Edit, BarChart3, Download } from "lucide-react";
+import { ArrowLeft, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -66,17 +66,6 @@ export default function PlotDetail() {
     }
   };
 
-  const calculateProjections = (area: number, bambooType: string) => {
-    // Simple calculation based on bamboo type and area
-    const yieldPerSqm = bambooType.includes("Moso") ? 20 : bambooType.includes("Giant") ? 25 : 15;
-    const expectedYield = Math.round(area * yieldPerSqm);
-    
-    return {
-      expectedYield,
-      maturityTime: bambooType.includes("Moso") ? "3-5 years" : "2-4 years",
-      harvestCycles: bambooType.includes("Clumping") ? "1-2" : "2-3",
-    };
-  };
 
   if (isLoading) {
     return (
@@ -116,7 +105,6 @@ export default function PlotDetail() {
     );
   }
 
-  const projections = calculateProjections(plot.area, plot.bambooType);
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -188,7 +176,7 @@ export default function PlotDetail() {
                   latitude={plot.latitude} 
                   longitude={plot.longitude} 
                   height={384}
-                  viewMode="orbit"
+                  viewMode="globe"
                   onError={(error) => {
                     console.error('Map Error:', error);
                   }}
@@ -200,51 +188,6 @@ export default function PlotDetail() {
 
           {/* Plot Details */}
           <div className="space-y-6">
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-medium mb-4 text-primary">Coordinates</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Latitude:</span>
-                    <span className="text-primary" data-testid="text-plot-latitude">
-                      {plot.latitude.toFixed(4)}° N
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Longitude:</span>
-                    <span className="text-primary" data-testid="text-plot-longitude">
-                      {Math.abs(plot.longitude).toFixed(4)}° {plot.longitude >= 0 ? 'E' : 'W'}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-card border-border">
-              <CardContent className="p-6">
-                <h3 className="text-lg font-medium mb-4 text-primary">Growth Projections</h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Expected Yield (1 year):</span>
-                    <span className="text-primary" data-testid="text-expected-yield">
-                      {projections.expectedYield.toLocaleString()} kg
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Maturity Time:</span>
-                    <span className="text-primary" data-testid="text-maturity-time">
-                      {projections.maturityTime}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Harvest Cycles/Year:</span>
-                    <span className="text-primary" data-testid="text-harvest-cycles">
-                      {projections.harvestCycles}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             {plot.notes && (
               <Card className="bg-card border-border">
@@ -268,21 +211,6 @@ export default function PlotDetail() {
           >
             <Edit className="w-4 h-4 mr-2" />
             Edit Plot
-          </Button>
-          <Button 
-            className="px-6 py-3 bg-accent text-accent-foreground hover:bg-accent/90"
-            data-testid="button-run-simulation"
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Run Simulation
-          </Button>
-          <Button 
-            variant="outline"
-            className="px-6 py-3 border-border hover:bg-muted text-muted-foreground"
-            data-testid="button-export-data"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Export Data
           </Button>
           <Button 
             variant="outline"
