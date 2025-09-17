@@ -498,20 +498,30 @@ export default function MapComponent({
       plotSpheresRef.current.push(earthTestSphere);
       console.log('DEBUG: Added green test sphere at origin, radius:', EARTH_RADIUS * 1.2);
 
-      // Test sphere 2: Large red sphere at North Pole
-      const northPoleRadius = EARTH_RADIUS * 0.2;
-      const northPoleGeometry = new SphereGeometry(northPoleRadius, 16, 16);
-      const northPoleMaterial = new MeshBasicMaterial({ 
+      // Test sphere 2: Large red sphere at lat=0, lon=0 (equator, prime meridian)
+      const testSphereRadius = EARTH_RADIUS * 0.2;
+      const testSphereGeometry = new SphereGeometry(testSphereRadius, 16, 16);
+      const testSphereMaterial = new MeshBasicMaterial({ 
         color: 0xff0000,
         opacity: 0.8,
         transparent: true
       });
-      const northPoleSphere = new Mesh(northPoleGeometry, northPoleMaterial);
-      northPoleSphere.position.set(0, 0, EARTH_RADIUS * 1.5); // High above North Pole
-      northPoleSphere.layers.set(PLOTS_LAYER);
-      sceneRef.current.add(northPoleSphere);
-      plotSpheresRef.current.push(northPoleSphere);
-      console.log('DEBUG: Added red test sphere at North Pole, position:', northPoleSphere.position);
+      const testSphere = new Mesh(testSphereGeometry, testSphereMaterial);
+      
+      // Position at lat=0, lon=0 using proper coordinate conversion
+      const lat = 0 * Math.PI / 180; // 0 degrees latitude
+      const lon = 0 * Math.PI / 180; // 0 degrees longitude  
+      const radius = EARTH_RADIUS * 1.5; // High above surface
+      
+      testSphere.position.set(
+        radius * Math.cos(lat) * Math.cos(lon), // x = radius * 1 * 1 = radius
+        radius * Math.cos(lat) * Math.sin(lon), // y = radius * 1 * 0 = 0  
+        radius * Math.sin(lat)                  // z = radius * 0 = 0
+      );
+      testSphere.layers.set(PLOTS_LAYER);
+      sceneRef.current.add(testSphere);
+      plotSpheresRef.current.push(testSphere);
+      console.log('DEBUG: Added red test sphere at lat=0, lon=0, position:', testSphere.position);
 
       // Create spheres for each plot
       plots.forEach(plot => {
