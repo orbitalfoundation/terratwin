@@ -49,6 +49,7 @@ export default function NasaMapComponent({
   const CAMERA_FAR_CLIP = 2600000;
   const CAMERA_MIN_DISTANCE = 500;
   const CAMERA_MAX_DISTANCE = 2000000;
+  const INITIAL_CAMERA_DISTANCE = 5000;
 
   // Define render layers
   const TILES_LAYER = 0;
@@ -312,7 +313,7 @@ export default function NasaMapComponent({
           CAMERA_NEAR_CLIP,
           CAMERA_FAR_CLIP
         );
-        camera.position.set(1, 1, 1).multiplyScalar(5.0);
+        camera.position.set(1, 1, 1).setLength(INITIAL_CAMERA_DISTANCE);
         cameraRef.current = camera;
 
         // Setup controls
