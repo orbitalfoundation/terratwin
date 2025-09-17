@@ -24,6 +24,11 @@ export default function Navigation() {
                   Add Plot
                 </span>
               </Link>
+              <Link href="/nasa-map" data-testid="link-nasa-map">
+                <span className={`transition-colors ${location === "/nasa-map" ? "text-primary" : "text-muted-foreground hover:text-primary"}`}>
+                  NASA Map
+                </span>
+              </Link>
             </div>
           </div>
         </div>

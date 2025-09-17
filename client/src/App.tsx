@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import AddPlot from "@/pages/add-plot";
 import PlotDetail from "@/pages/plot-detail";
+import NasaMap from "@/pages/nasa-map";
 import Navigation from "@/components/navigation";
 
 function Router() {
@@ -17,6 +18,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/plots/new" component={AddPlot} />
         <Route path="/plots/:id" component={PlotDetail} />
+        <Route path="/nasa-map" component={NasaMap} />
         <Route component={NotFound} />
       </Switch>
     </div>
