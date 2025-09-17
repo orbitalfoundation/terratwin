@@ -244,11 +244,17 @@ export default function MapComponent({
         );
         renderer.setPixelRatio(window.devicePixelRatio);
         
-        // Ensure canvas can receive mouse events
+        // Ensure canvas can receive mouse events - increased z-index to override eruda overlay
         renderer.domElement.style.pointerEvents = 'auto';
         renderer.domElement.style.touchAction = 'none';
         renderer.domElement.style.position = 'relative';
-        renderer.domElement.style.zIndex = '1';
+        renderer.domElement.style.zIndex = '9999';
+        
+        // Force events to the canvas by preventing default on parent container
+        if (containerRef.current) {
+          containerRef.current.style.position = 'relative';
+          containerRef.current.style.zIndex = '9999';
+        }
         
         // Debug: Add global event listener to see what's capturing mousedown
         const globalMouseDown = (e: MouseEvent) => {
