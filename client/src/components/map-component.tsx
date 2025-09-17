@@ -480,50 +480,17 @@ export default function MapComponent({
       });
       plotSpheresRef.current = [];
 
-      // DEBUG: Add test sphere to verify positioning
-      console.log('DEBUG: Adding test sphere for debugging');
-      
-      // Test sphere: Large red sphere at lat=0, lon=0 (equator, prime meridian)
-      const testSphereRadius = EARTH_RADIUS * 0.2;
-      const testSphereGeometry = new SphereGeometry(testSphereRadius, 16, 16);
-      const testSphereMaterial = new MeshBasicMaterial({ 
-        color: 0xff0000,
-        opacity: 0.8,
-        transparent: true
-      });
-      const testSphere = new Mesh(testSphereGeometry, testSphereMaterial);
-      
-      // Position at lat=0, lon=45 using proper coordinate conversion
-      const lat = 0 * Math.PI / 180; // 0 degrees latitude
-      const lon = 45 * Math.PI / 180; // 45 degrees longitude  
-      const radius = EARTH_RADIUS * 1.01; // Just above Earth surface
-      
-      testSphere.position.set(
-        radius * Math.cos(lat) * Math.cos(lon), // x = radius * cos(lat) * cos(lon) - CORRECT ECEF
-        radius * Math.cos(lat) * Math.sin(lon), // y = radius * cos(lat) * sin(lon) - CORRECT ECEF  
-        radius * Math.sin(lat)                  // z = radius * sin(lat) - CORRECT ECEF
-      );
-      testSphere.layers.set(PLOTS_LAYER);
-      tilesRef.current.group.add(testSphere); // Add to tiles group, not scene root
-      plotSpheresRef.current.push(testSphere);
-      console.log('DEBUG: Added red test sphere at lat=0, lon=45, position:', testSphere.position);
-
       // Create spheres for each plot
       plots.forEach(plot => {
-        // Calculate sphere size based on camera distance or fixed size for globe view
-        // Make them really big - hundreds of kilometers tall for visibility
-        const sphereSize = viewMode === "globe" ? EARTH_RADIUS * 0.1 : 1000;
+        // Small sphere size for better visibility
+        const sphereSize = viewMode === "globe" ? EARTH_RADIUS * 0.01 : 1000;
         
         // Create sphere geometry
         const sphereGeometry = new SphereGeometry(sphereSize, 16, 16);
         
-        // Color based on plot status
-        let color = 0x00ff00; // Green for active
-        if (plot.status === "planning") color = 0xffff00; // Yellow for planning
-        if (plot.status === "inactive") color = 0xff0000; // Red for inactive
-        
+        // All spheres are green
         const sphereMaterial = new MeshBasicMaterial({ 
-          color,
+          color: 0x00ff00, // Green
           opacity: 0.8,
           transparent: true
         });
