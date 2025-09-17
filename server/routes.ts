@@ -81,6 +81,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get Cesium key for frontend
+  app.get("/api/cesium-key", async (req, res) => {
+    try {
+      const cesiumKey = process.env.CESIUM_KEY;
+      res.json({ cesiumKey: cesiumKey || null });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get Cesium key" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

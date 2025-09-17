@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 interface NasaMapComponentProps {
-  cesiumToken: string;
   latitude: number;
   longitude: number;
   height?: number;
@@ -11,7 +11,6 @@ interface NasaMapComponentProps {
 }
 
 export default function NasaMapComponent({ 
-  cesiumToken, 
   latitude, 
   longitude, 
   height = 400,
@@ -19,6 +18,11 @@ export default function NasaMapComponent({
   className = "",
   onError
 }: NasaMapComponentProps) {
+  const { data: cesiumData } = useQuery<{cesiumKey: string | null}>({
+    queryKey: ["/api/cesium-key"],
+  });
+  
+  const cesiumToken = cesiumData?.cesiumKey || "";
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<any>(null);
   const rendererRef = useRef<any>(null);

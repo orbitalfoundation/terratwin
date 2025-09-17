@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,11 @@ export default function NasaMap() {
   const controlsRef = useRef<any>(null);
   const animationIdRef = useRef<number>();
   
-  const [cesiumToken, setCesiumToken] = useState("");
+  const { data: cesiumData } = useQuery<{cesiumKey: string | null}>({
+    queryKey: ["/api/cesium-key"],
+  });
+  
+  const cesiumToken = cesiumData?.cesiumKey || "";
   const [lat, setLat] = useState(7.6455);
   const [lon, setLon] = useState(122.4);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -226,20 +231,7 @@ export default function NasaMap() {
         <Card className="bg-card border-border">
           <CardContent className="p-6">
             <h2 className="text-lg font-medium mb-4 text-primary">Configuration</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="cesium-token" className="block text-sm font-medium mb-2">
-                  Cesium Ion Token
-                </Label>
-                <Input
-                  id="cesium-token"
-                  value={cesiumToken}
-                  onChange={(e) => setCesiumToken(e.target.value)}
-                  placeholder="Enter your Cesium Ion token"
-                  className="w-full"
-                  data-testid="input-cesium-token"
-                />
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="latitude" className="block text-sm font-medium mb-2">
                   Latitude
@@ -269,10 +261,14 @@ export default function NasaMap() {
                 />
               </div>
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {cesiumToken ? "✓ Cesium token loaded from environment" : "⚠ No Cesium token found"}
+              </div>
               <Button 
                 onClick={handleInitialize}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
+                disabled={!cesiumToken}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:bg-muted"
                 data-testid="button-initialize"
               >
                 {isInitialized ? "Re-initialize" : "Initialize"} Map
@@ -293,8 +289,8 @@ export default function NasaMap() {
             {!cesiumToken && (
               <div className="mt-4 p-4 bg-muted rounded-lg">
                 <p className="text-muted-foreground text-sm">
-                  <strong>Note:</strong> You need a Cesium Ion token to load satellite tiles. 
-                  Get one free at <a href="https://cesium.com/ion/" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">cesium.com/ion</a>
+                  <strong>Note:</strong> Cesium Ion token not found in environment variables. 
+                  Contact your administrator to set up the CESIUM_KEY secret.
                 </p>
               </div>
             )}
