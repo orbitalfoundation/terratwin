@@ -7,7 +7,6 @@ export interface IStorage {
   createPlot(plot: InsertPlot): Promise<Plot>;
   updatePlot(id: string, plot: Partial<InsertPlot>): Promise<Plot | undefined>;
   deletePlot(id: string): Promise<boolean>;
-  flushAllPlots(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
