@@ -250,6 +250,23 @@ export default function MapComponent({
         renderer.domElement.style.position = 'relative';
         renderer.domElement.style.zIndex = '1';
         
+        // Debug: Add temporary mouse event listeners to test event flow
+        const debugMouseDown = (e: MouseEvent) => {
+          console.log('DEBUG: Canvas mousedown event received', { x: e.clientX, y: e.clientY });
+        };
+        const debugMouseMove = (e: MouseEvent) => {
+          if (e.buttons > 0) { // Only log when mouse is pressed
+            console.log('DEBUG: Canvas mousemove event received (dragging)', { x: e.clientX, y: e.clientY });
+          }
+        };
+        const debugWheel = (e: WheelEvent) => {
+          console.log('DEBUG: Canvas wheel event received', { deltaY: e.deltaY });
+        };
+        
+        renderer.domElement.addEventListener('mousedown', debugMouseDown);
+        renderer.domElement.addEventListener('mousemove', debugMouseMove);
+        renderer.domElement.addEventListener('wheel', debugWheel);
+        
         container.appendChild(renderer.domElement);
         rendererRef.current = renderer;
 
@@ -291,7 +308,7 @@ export default function MapComponent({
         // Create controls based on view mode
         let controls;
         if (viewMode === "globe") {
-          controls = new GlobeControls(scene, camera, renderer.domElement, null);
+          controls = new GlobeControls(scene, camera, renderer.domElement);
           controls.enableDamping = true;
         } else {
           controls = new OrbitControls(camera, renderer.domElement);
