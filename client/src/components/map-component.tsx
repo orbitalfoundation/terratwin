@@ -243,6 +243,13 @@ export default function MapComponent({
           container.clientHeight
         );
         renderer.setPixelRatio(window.devicePixelRatio);
+        
+        // Ensure canvas can receive mouse events
+        renderer.domElement.style.pointerEvents = 'auto';
+        renderer.domElement.style.touchAction = 'none';
+        renderer.domElement.style.position = 'relative';
+        renderer.domElement.style.zIndex = '1';
+        
         container.appendChild(renderer.domElement);
         rendererRef.current = renderer;
 
