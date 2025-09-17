@@ -493,10 +493,10 @@ export default function MapComponent({
       });
       const testSphere = new Mesh(testSphereGeometry, testSphereMaterial);
       
-      // Position at lat=0, lon=0 using proper coordinate conversion
+      // Position at lat=0, lon=45 using proper coordinate conversion
       const lat = 0 * Math.PI / 180; // 0 degrees latitude
-      const lon = 0 * Math.PI / 180; // 0 degrees longitude  
-      const radius = EARTH_RADIUS * 1.5; // High above surface
+      const lon = 45 * Math.PI / 180; // 45 degrees longitude  
+      const radius = EARTH_RADIUS * 1.01; // Just above Earth surface
       
       testSphere.position.set(
         radius * Math.cos(lat) * Math.cos(lon), // x = radius * 1 * 1 = radius
@@ -506,7 +506,7 @@ export default function MapComponent({
       testSphere.layers.set(PLOTS_LAYER);
       sceneRef.current.add(testSphere);
       plotSpheresRef.current.push(testSphere);
-      console.log('DEBUG: Added red test sphere at lat=0, lon=0, position:', testSphere.position);
+      console.log('DEBUG: Added red test sphere at lat=0, lon=45, position:', testSphere.position);
 
       // Create spheres for each plot
       plots.forEach(plot => {
