@@ -244,16 +244,32 @@ export default function MapComponent({
         );
         renderer.setPixelRatio(window.devicePixelRatio);
         
-        // Ensure canvas can receive mouse events - increased z-index to override eruda overlay
+        // Ensure canvas can receive mouse events with aggressive event capturing
         renderer.domElement.style.pointerEvents = 'auto';
         renderer.domElement.style.touchAction = 'none';
-        renderer.domElement.style.position = 'relative';
+        renderer.domElement.style.position = 'absolute';
+        renderer.domElement.style.top = '0';
+        renderer.domElement.style.left = '0';
+        renderer.domElement.style.width = '100%';
+        renderer.domElement.style.height = '100%';
         renderer.domElement.style.zIndex = '9999';
         
-        // Force events to the canvas by preventing default on parent container
+        // Set container to relative positioning to contain the absolute canvas
         if (containerRef.current) {
           containerRef.current.style.position = 'relative';
-          containerRef.current.style.zIndex = '9999';
+          containerRef.current.style.cursor = 'grab';
+          // Add event forwarding from container to canvas
+          const forwardMouseEvent = (e: MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Create and dispatch the same event on canvas
+            const canvasEvent = new MouseEvent(e.type, e);
+            renderer.domElement.dispatchEvent(canvasEvent);
+          };
+          
+          containerRef.current.addEventListener('mousedown', forwardMouseEvent, { capture: true });
+          containerRef.current.addEventListener('mousemove', forwardMouseEvent, { capture: true });
+          containerRef.current.addEventListener('mouseup', forwardMouseEvent, { capture: true });
         }
         
         // Debug: Add global event listener to see what's capturing mousedown
