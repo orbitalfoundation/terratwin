@@ -194,8 +194,47 @@ export default function MapComponent({
         const scene = new Scene();
         sceneRef.current = scene;
 
-        // Create renderer
-        const renderer = new WebGLRenderer({ antialias: true });
+        // Check WebGL support and create renderer with fallback
+        let renderer;
+        try {
+          // Test WebGL support
+          const canvas = document.createElement('canvas');
+          const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+          if (!gl) {
+            throw new Error('WebGL not supported');
+          }
+          
+          renderer = new WebGLRenderer({ antialias: true });
+          console.info('MapComponent: WebGL renderer created successfully');
+        } catch (error) {
+          console.warn('MapComponent: WebGL unavailable, creating fallback display:', (error as Error).message);
+          // Create a fallback display for environments without WebGL
+          const fallbackDiv = document.createElement('div');
+          fallbackDiv.style.width = '100%';
+          fallbackDiv.style.height = '100%';
+          fallbackDiv.style.backgroundColor = '#001a33';
+          fallbackDiv.style.display = 'flex';
+          fallbackDiv.style.alignItems = 'center';
+          fallbackDiv.style.justifyContent = 'center';
+          fallbackDiv.style.color = '#ffffff';
+          fallbackDiv.style.fontFamily = 'Arial, sans-serif';
+          fallbackDiv.innerHTML = `
+            <div style="text-align: center;">
+              <div style="font-size: 18px; margin-bottom: 8px;">🌍 3D Map View</div>
+              <div style="font-size: 14px; opacity: 0.7;">WebGL not available in this environment</div>
+              <div style="font-size: 12px; opacity: 0.5; margin-top: 8px;">
+                ${viewMode === 'globe' ? 'Globe view with plot markers' : 'Satellite imagery view'}
+              </div>
+            </div>
+          `;
+          
+          const container = containerRef.current;
+          if (!container) return;
+          container.appendChild(fallbackDiv);
+          
+          setEngineReady(true);
+          return; // Exit early for non-WebGL environments
+        }
         renderer.setClearColor(0x001a33); // Dark blue background
         const container = containerRef.current;
         if (!container) return;
