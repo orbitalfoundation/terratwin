@@ -479,7 +479,8 @@ export default function MapComponent({
       // Create spheres for each plot
       plots.forEach(plot => {
         // Calculate sphere size based on camera distance or fixed size for globe view
-        const sphereSize = viewMode === "globe" ? EARTH_RADIUS * 0.01 : 1000;
+        // Make them really big - hundreds of kilometers tall for visibility
+        const sphereSize = viewMode === "globe" ? EARTH_RADIUS * 0.1 : 1000;
         
         // Create sphere geometry
         const sphereGeometry = new SphereGeometry(sphereSize, 16, 16);
