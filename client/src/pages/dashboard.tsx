@@ -4,7 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import PlotCard from "@/components/plot-card";
-import DashboardMap from "@/components/dashboard-map";
+import Dashboard3DMap from "@/components/dashboard-3d-map";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Plot } from "@shared/schema";
@@ -101,7 +101,7 @@ export default function Dashboard() {
             </h2>
           </div>
           <div className="p-6">
-            <DashboardMap plots={plots || []} />
+            <Dashboard3DMap plots={plots || []} />
           </div>
         </Card>
 
