@@ -71,15 +71,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin endpoint to flush all plots
-  app.delete("/api/admin/plots", async (req, res) => {
-    try {
-      await storage.flushAllPlots();
-      res.json({ message: "All plots have been deleted" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to flush plots" });
-    }
-  });
 
   // Get Cesium key for frontend
   app.get("/api/cesium-key", async (req, res) => {

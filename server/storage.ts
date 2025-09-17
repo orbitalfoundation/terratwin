@@ -105,9 +105,6 @@ export class MemStorage implements IStorage {
     return this.plots.delete(id);
   }
 
-  async flushAllPlots(): Promise<void> {
-    this.plots.clear();
-  }
 }
 
 export const storage = new MemStorage();

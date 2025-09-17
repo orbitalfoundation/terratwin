@@ -17,25 +17,6 @@ export default function Dashboard() {
     queryKey: ["/api/plots"],
   });
 
-  const flushDataMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("DELETE", "/api/admin/plots");
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/plots"] });
-      toast({
-        title: "Success",
-        description: "All plot data has been cleared",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to clear data",
-        variant: "destructive",
-      });
-    },
-  });
 
   const totalPlots = plots?.length || 0;
   const totalArea = plots?.reduce((sum, plot) => sum + plot.area, 0) || 0;
@@ -81,16 +62,6 @@ export default function Dashboard() {
                 Add New Plot
               </Button>
             </Link>
-            <Button 
-              variant="outline"
-              onClick={() => flushDataMutation.mutate()}
-              disabled={flushDataMutation.isPending}
-              className="inline-flex items-center px-6 py-3 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
-              data-testid="button-flush-data"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              {flushDataMutation.isPending ? "Clearing..." : "Clear All Data"}
-            </Button>
           </div>
         </div>
 
