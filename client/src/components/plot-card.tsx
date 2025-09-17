@@ -1,4 +1,9 @@
 import { Link } from "wouter";
+import { Trash2 } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { Plot } from "@shared/schema";
 
 interface PlotCardProps {
@@ -6,6 +11,35 @@ interface PlotCardProps {
 }
 
 export default function PlotCard({ plot }: PlotCardProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const deletePlotMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/plots/${plot.id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/plots"] });
+      toast({
+        title: "Success",
+        description: "Plot deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error", 
+        description: error.message || "Failed to delete plot",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation to plot detail
+    e.stopPropagation();
+    deletePlotMutation.mutate();
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -33,9 +67,9 @@ export default function PlotCard({ plot }: PlotCardProps) {
   };
 
   return (
-    <Link href={`/plots/${plot.id}`} data-testid={`link-plot-${plot.id}`}>
-      <div className="px-6 py-4 hover:bg-muted/50 transition-colors cursor-pointer" data-testid={`card-plot-${plot.id}`}>
-        <div className="flex items-center justify-between">
+    <div className="px-6 py-4 hover:bg-muted/50 transition-colors group" data-testid={`card-plot-${plot.id}`}>
+      <Link href={`/plots/${plot.id}`} data-testid={`link-plot-${plot.id}`}>
+        <div className="flex items-center justify-between cursor-pointer">
           <div className="flex-1">
             <h3 className="font-medium text-primary" data-testid={`text-plot-name-${plot.id}`}>
               {plot.name}
@@ -55,14 +89,26 @@ export default function PlotCard({ plot }: PlotCardProps) {
               </span>
             </div>
           </div>
-          <div className="text-right">
-            <div className="text-sm text-muted-foreground">Last updated</div>
-            <div className="text-sm text-primary" data-testid={`text-plot-updated-${plot.id}`}>
-              {formatDate(plot.updatedAt)}
+          <div className="flex items-center space-x-3">
+            <div className="text-right">
+              <div className="text-sm text-muted-foreground">Last updated</div>
+              <div className="text-sm text-primary" data-testid={`text-plot-updated-${plot.id}`}>
+                {formatDate(plot.updatedAt)}
+              </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deletePlotMutation.isPending}
+              className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive-foreground hover:bg-destructive"
+              data-testid={`button-delete-plot-${plot.id}`}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         </div>
-      </div>
-    </Link>
+      </Link>
+    </div>
   );
 }
