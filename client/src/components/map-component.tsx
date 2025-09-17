@@ -282,21 +282,12 @@ export default function MapComponent({
         cameraRef.current = camera;
 
         // Create controls based on view mode
-        const controls = new OrbitControls(camera, renderer.domElement);
-        
+        let controls;
         if (viewMode === "globe") {
-          // Globe view configuration - allows full 360° rotation
+          controls = new GlobeControls(scene, camera, renderer.domElement);
           controls.enableDamping = true;
-          controls.dampingFactor = 0.05;
-          controls.enablePan = false; // Disable panning for globe
-          controls.minDistance = EARTH_RADIUS + 1000; // Stay above Earth surface
-          controls.maxDistance = EARTH_RADIUS * 10;
-          controls.autoRotate = false;
-          // Allow full rotation around the globe
-          controls.minPolarAngle = 0;
-          controls.maxPolarAngle = Math.PI;
         } else {
-          // Orbit view configuration - restricted for NASA satellite view
+          controls = new OrbitControls(camera, renderer.domElement);
           controls.minDistance = CAMERA_MIN_DISTANCE;
           controls.maxDistance = CAMERA_MAX_DISTANCE;
           controls.minPolarAngle = 0;
@@ -334,6 +325,10 @@ export default function MapComponent({
         scene.add(tiles.group);
         tiles.setResolutionFromRenderer(camera, renderer);
         tiles.setCamera(camera);
+        
+        if (viewMode === "globe" && 'setEllipsoid' in controls) {
+          (controls as any).setEllipsoid(tiles.ellipsoid, tiles.group);
+        }
         
         tilesRef.current = tiles;
 
