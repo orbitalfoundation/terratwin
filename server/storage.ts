@@ -7,6 +7,7 @@ export interface IStorage {
   createPlot(plot: InsertPlot): Promise<Plot>;
   updatePlot(id: string, plot: Partial<InsertPlot>): Promise<Plot | undefined>;
   deletePlot(id: string): Promise<boolean>;
+  flushAllPlots(): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -14,8 +15,7 @@ export class MemStorage implements IStorage {
 
   constructor() {
     this.plots = new Map();
-    // Add some initial sample data
-    this.seedData();
+    // No initial data - start with empty plots
   }
 
   private seedData() {
@@ -103,6 +103,10 @@ export class MemStorage implements IStorage {
 
   async deletePlot(id: string): Promise<boolean> {
     return this.plots.delete(id);
+  }
+
+  async flushAllPlots(): Promise<void> {
+    this.plots.clear();
   }
 }
 

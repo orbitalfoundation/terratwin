@@ -1,14 +1,40 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import PlotCard from "@/components/plot-card";
+import DashboardMap from "@/components/dashboard-map";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import type { Plot } from "@shared/schema";
 
 export default function Dashboard() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const { data: plots, isLoading } = useQuery<Plot[]>({
     queryKey: ["/api/plots"],
+  });
+
+  const flushDataMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", "/api/admin/plots");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/plots"] });
+      toast({
+        title: "Success",
+        description: "All plot data has been cleared",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to clear data",
+        variant: "destructive",
+      });
+    },
   });
 
   const totalPlots = plots?.length || 0;
@@ -48,12 +74,24 @@ export default function Dashboard() {
               Manage your bamboo cultivation plots
             </p>
           </div>
-          <Link href="/plots/new" data-testid="link-add-plot">
-            <Button className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-              <Plus className="w-4 h-4 mr-2" />
-              Add New Plot
+          <div className="flex space-x-3">
+            <Link href="/plots/new" data-testid="link-add-plot">
+              <Button className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+                <Plus className="w-4 h-4 mr-2" />
+                Add New Plot
+              </Button>
+            </Link>
+            <Button 
+              variant="outline"
+              onClick={() => flushDataMutation.mutate()}
+              disabled={flushDataMutation.isPending}
+              className="inline-flex items-center px-6 py-3 border-destructive text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              data-testid="button-flush-data"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {flushDataMutation.isPending ? "Clearing..." : "Clear All Data"}
             </Button>
-          </Link>
+          </div>
         </div>
 
         {/* Stats Overview */}
@@ -83,6 +121,18 @@ export default function Dashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Overview Map */}
+        <Card className="bg-card border-border">
+          <div className="px-6 py-4 border-b border-border">
+            <h2 className="text-lg font-medium text-primary" data-testid="text-map-header">
+              Plot Overview Map
+            </h2>
+          </div>
+          <div className="p-6">
+            <DashboardMap plots={plots || []} />
+          </div>
+        </Card>
 
         {/* Plots List */}
         <Card className="bg-card border-border">
