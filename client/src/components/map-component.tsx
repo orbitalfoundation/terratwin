@@ -250,6 +250,18 @@ export default function MapComponent({
         renderer.domElement.style.position = 'relative';
         renderer.domElement.style.zIndex = '1';
         
+        // Debug: Add global event listener to see what's capturing mousedown
+        const globalMouseDown = (e: MouseEvent) => {
+          const target = e.target as Element;
+          console.log('DEBUG: Global mousedown captured by:', {
+            tagName: target.tagName,
+            className: target.className,
+            id: target.id,
+            isCanvas: target === renderer.domElement
+          });
+        };
+        document.addEventListener('mousedown', globalMouseDown);
+        
         // Debug: Add temporary mouse event listeners to test event flow
         const debugMouseDown = (e: MouseEvent) => {
           console.log('DEBUG: Canvas mousedown event received', { x: e.clientX, y: e.clientY });
