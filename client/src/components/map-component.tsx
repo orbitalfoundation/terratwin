@@ -309,6 +309,10 @@ export default function MapComponent({
         } else {
           camera.position.set(1, 1, 1).multiplyScalar(5000);
         }
+        
+        // CRITICAL: Enable camera to see all layers including PLOTS_LAYER
+        camera.layers.enableAll();
+        
         cameraRef.current = camera;
 
         // Create controls based on view mode
@@ -475,6 +479,39 @@ export default function MapComponent({
         sphere.material.dispose();
       });
       plotSpheresRef.current = [];
+
+      // DEBUG: Add test spheres to verify rendering
+      console.log('DEBUG: Adding test spheres for debugging');
+      
+      // Test sphere 1: Large green sphere slightly bigger than Earth at origin
+      const earthTestGeometry = new SphereGeometry(EARTH_RADIUS * 1.2, 32, 32);
+      const earthTestMaterial = new MeshBasicMaterial({ 
+        color: 0x00ff00,
+        opacity: 0.3,
+        transparent: true,
+        wireframe: true
+      });
+      const earthTestSphere = new Mesh(earthTestGeometry, earthTestMaterial);
+      earthTestSphere.position.set(0, 0, 0);
+      earthTestSphere.layers.set(PLOTS_LAYER);
+      sceneRef.current.add(earthTestSphere);
+      plotSpheresRef.current.push(earthTestSphere);
+      console.log('DEBUG: Added green test sphere at origin, radius:', EARTH_RADIUS * 1.2);
+
+      // Test sphere 2: Large red sphere at North Pole
+      const northPoleRadius = EARTH_RADIUS * 0.2;
+      const northPoleGeometry = new SphereGeometry(northPoleRadius, 16, 16);
+      const northPoleMaterial = new MeshBasicMaterial({ 
+        color: 0xff0000,
+        opacity: 0.8,
+        transparent: true
+      });
+      const northPoleSphere = new Mesh(northPoleGeometry, northPoleMaterial);
+      northPoleSphere.position.set(0, 0, EARTH_RADIUS * 1.5); // High above North Pole
+      northPoleSphere.layers.set(PLOTS_LAYER);
+      sceneRef.current.add(northPoleSphere);
+      plotSpheresRef.current.push(northPoleSphere);
+      console.log('DEBUG: Added red test sphere at North Pole, position:', northPoleSphere.position);
 
       // Create spheres for each plot
       plots.forEach(plot => {
