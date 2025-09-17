@@ -261,16 +261,14 @@ export default function NasaMapComponent({
       if (!containerRef.current || !cesiumToken) return;
 
       try {
-        // Dynamic imports using the import map
+        // Dynamic imports using the reference file approach
         const [
           { Scene, WebGLRenderer, PerspectiveCamera, MathUtils, AmbientLight, DirectionalLight },
-          { OrbitControls },
-          { TilesRenderer },
-          { TileCompressionPlugin, GLTFExtensionsPlugin, CesiumIonAuthPlugin, ReorientationPlugin },
+          { TilesRenderer, GlobeControls },
+          { TileCompressionPlugin, UpdateOnChangePlugin, UnloadTilesPlugin, TilesFadePlugin, GLTFExtensionsPlugin, CesiumIonAuthPlugin },
           { DRACOLoader }
         ] = await Promise.all([
           import('three'),
-          import('three/examples/jsm/controls/OrbitControls.js'),
           import('3d-tiles-renderer'),
           import('3d-tiles-renderer/plugins'),
           import('three/examples/jsm/loaders/DRACOLoader.js')
@@ -306,27 +304,25 @@ export default function NasaMapComponent({
         scene.add(directionalLight2);
         scene.add(directionalLight2.target);
 
-        // Setup camera
+        // Setup camera with reference file approach (top-down positioning)
+        const EARTH_RADIUS = 6378160;
         const camera = new PerspectiveCamera(
           60,
           containerRef.current.clientWidth / containerRef.current.clientHeight,
           CAMERA_NEAR_CLIP,
           CAMERA_FAR_CLIP
         );
-        camera.position.set(1, 1, 1).setLength(INITIAL_CAMERA_DISTANCE);
+        // Position camera for top-down view (reference file approach)
+        camera.position.set(EARTH_RADIUS * 2, 0, 0);
         cameraRef.current = camera;
 
-        // Setup controls
-        const controls = new OrbitControls(camera, renderer.domElement);
+        // Setup GlobeControls (reference file approach)
+        const controls = new GlobeControls(scene, camera, renderer.domElement);
         controls.minDistance = CAMERA_MIN_DISTANCE;
         controls.maxDistance = CAMERA_MAX_DISTANCE;
-        controls.minPolarAngle = 0;
-        controls.maxPolarAngle = 3 * Math.PI / 8;
-        controls.enableDamping = true;
-        controls.enablePan = true;
         controlsRef.current = controls;
 
-        // Setup tiles
+        // Setup tiles with reference file approach (no reorientation plugin)
         const tiles = new TilesRenderer();
         tiles.registerPlugin(new CesiumIonAuthPlugin({ 
           apiToken: cesiumToken, 
@@ -334,17 +330,24 @@ export default function NasaMapComponent({
           autoRefreshToken: true 
         }));
         tiles.registerPlugin(new TileCompressionPlugin());
+        tiles.registerPlugin(new UpdateOnChangePlugin());
+        tiles.registerPlugin(new UnloadTilesPlugin());
+        tiles.registerPlugin(new TilesFadePlugin());
         tiles.registerPlugin(new GLTFExtensionsPlugin({
           dracoLoader: new DRACOLoader().setDecoderPath('https://unpkg.com/three@0.153.0/examples/jsm/libs/draco/gltf/')
         }));
-        tiles.registerPlugin(new ReorientationPlugin({
-          lat: latitude * MathUtils.DEG2RAD,
-          lon: longitude * MathUtils.DEG2RAD
-        }));
 
+        // Apply reference file rotation (top-down view)
+        tiles.group.rotation.x = -Math.PI / 2;
         scene.add(tiles.group);
         tiles.setResolutionFromRenderer(camera, renderer);
         tiles.setCamera(camera);
+        
+        // Set ellipsoid for controls (reference file approach)
+        if (tiles.ellipsoid) {
+          controls.setEllipsoid(tiles.ellipsoid, tiles.group);
+        }
+        
         tilesRef.current = tiles;
 
         // Create boundary if enabled
