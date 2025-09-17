@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import NasaMapComponent from "@/components/nasa-map-component";
+import MapComponent from "@/components/map-component";
 
 export default function NasaMap() {
   const [, setLocation] = useLocation();
@@ -132,16 +132,17 @@ export default function NasaMap() {
           <CardContent className="p-6">
             <h2 className="text-lg font-medium mb-4 text-primary">3D Map View</h2>
             {cesiumToken ? (
-              <NasaMapComponent 
+              <MapComponent 
                 latitude={lat}
                 longitude={lon}
                 height={600}
+                viewMode="orbit"
                 enableBoundary={enableBoundary}
                 boundaryPoints={enableBoundary ? defaultBoundaryPoints : []}
                 onError={(error) => {
                   console.error('NASA Map Error:', error);
                 }}
-                data-testid="nasa-map-component"
+                data-testid="map-component"
               />
             ) : (
               <div className="w-full h-[600px] bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center">
