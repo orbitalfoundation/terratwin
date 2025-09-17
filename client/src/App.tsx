@@ -17,6 +17,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/plots/new" component={AddPlot} />
+        <Route path="/plots/edit/:id" component={AddPlot} />
         <Route path="/plots/:id" component={PlotDetail} />
         <Route path="/nasa-map" component={NasaMap} />
         <Route component={NotFound} />

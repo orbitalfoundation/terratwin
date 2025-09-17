@@ -262,6 +262,7 @@ export default function PlotDetail() {
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-4">
           <Button 
+            onClick={() => setLocation(`/plots/edit/${id}`)}
             className="px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90"
             data-testid="button-edit-plot"
           >

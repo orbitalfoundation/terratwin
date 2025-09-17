@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
+import { useLocation, useParams } from "wouter";
 import { ArrowLeft } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { insertPlotSchema, type InsertPlot } from "@shared/schema";
+import { insertPlotSchema, type InsertPlot, type Plot } from "@shared/schema";
 
 const bambooTypes = [
   "Moso Bamboo",
@@ -23,9 +23,19 @@ const bambooTypes = [
 ];
 
 export default function AddPlot() {
+  const { id } = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Check if we're in edit mode
+  const isEditMode = !!id;
+  
+  // Load existing plot data if editing
+  const { data: existingPlot } = useQuery<Plot>({
+    queryKey: ["/api/plots", id],
+    enabled: isEditMode,
+  });
 
   const {
     register,
@@ -33,6 +43,7 @@ export default function AddPlot() {
     setValue,
     watch,
     formState: { errors },
+    reset,
   } = useForm<InsertPlot>({
     resolver: zodResolver(insertPlotSchema),
     defaultValues: {
@@ -40,30 +51,50 @@ export default function AddPlot() {
     },
   });
 
-  const createPlotMutation = useMutation({
+  // Update form when existing plot data loads
+  useEffect(() => {
+    if (existingPlot && isEditMode) {
+      reset({
+        name: existingPlot.name,
+        latitude: existingPlot.latitude,
+        longitude: existingPlot.longitude,
+        area: existingPlot.area,
+        bambooType: existingPlot.bambooType,
+        status: existingPlot.status as "planning" | "active" | "inactive",
+        notes: existingPlot.notes || '',
+      });
+    }
+  }, [existingPlot, isEditMode, reset]);
+
+  const plotMutation = useMutation({
     mutationFn: async (data: InsertPlot) => {
-      const response = await apiRequest("POST", "/api/plots", data);
-      return response.json();
+      if (isEditMode) {
+        const response = await apiRequest("PUT", `/api/plots/${id}`, data);
+        return response.json();
+      } else {
+        const response = await apiRequest("POST", "/api/plots", data);
+        return response.json();
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/plots"] });
       toast({
         title: "Success",
-        description: "Plot created successfully",
+        description: isEditMode ? "Plot updated successfully" : "Plot created successfully",
       });
-      setLocation("/");
+      setLocation(isEditMode ? `/plots/${id}` : "/");
     },
     onError: (error: any) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create plot",
+        description: error.message || `Failed to ${isEditMode ? 'update' : 'create'} plot`,
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = (data: InsertPlot) => {
-    createPlotMutation.mutate(data);
+    plotMutation.mutate(data);
   };
 
   return (
@@ -79,8 +110,8 @@ export default function AddPlot() {
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-3xl font-light tracking-tight text-primary" data-testid="text-add-plot-title">
-            Add New Plot
+          <h1 className="text-3xl font-light tracking-tight text-primary" data-testid={isEditMode ? "text-edit-plot-title" : "text-add-plot-title"}>
+            {isEditMode ? "Edit Plot" : "Add New Plot"}
           </h1>
         </div>
 
@@ -233,11 +264,14 @@ export default function AddPlot() {
             <div className="flex space-x-4">
               <Button 
                 type="submit" 
-                disabled={createPlotMutation.isPending}
+                disabled={plotMutation.isPending}
                 className="px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90"
-                data-testid="button-create-plot"
+                data-testid={isEditMode ? "button-update-plot" : "button-create-plot"}
               >
-                {createPlotMutation.isPending ? "Creating..." : "Create Plot"}
+                {plotMutation.isPending 
+                  ? (isEditMode ? "Updating..." : "Creating...") 
+                  : (isEditMode ? "Update Plot" : "Create Plot")
+                }
               </Button>
               <Button 
                 type="button" 
