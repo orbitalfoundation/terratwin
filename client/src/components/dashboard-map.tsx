@@ -18,34 +18,56 @@ export default function DashboardMap({ plots }: DashboardMapProps) {
   useEffect(() => {
     // Load Leaflet CSS and JS dynamically
     const loadLeaflet = async () => {
-      // Load CSS
-      if (!document.querySelector('link[href*="leaflet"]')) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
-      }
+      try {
+        // Load CSS
+        if (!document.querySelector('link[href*="leaflet"]')) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          document.head.appendChild(link);
+        }
 
-      // Load JS
-      if (!window.L) {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.onload = initializeMap;
-        document.head.appendChild(script);
-      } else {
-        initializeMap();
+        // Load JS
+        if (!window.L) {
+          const script = document.createElement('script');
+          script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          script.onload = () => {
+            try {
+              initializeMap();
+            } catch (error) {
+              console.error('Error initializing map:', error);
+            }
+          };
+          script.onerror = (error) => {
+            console.error('Error loading Leaflet script:', error);
+          };
+          document.head.appendChild(script);
+        } else {
+          try {
+            initializeMap();
+          } catch (error) {
+            console.error('Error initializing map:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error in loadLeaflet:', error);
       }
     };
 
     const initializeMap = () => {
-      if (!mapRef.current || !window.L) return;
+      try {
+        if (!mapRef.current || !window.L) {
+          console.warn('Map container or Leaflet not available');
+          return;
+        }
 
-      // Remove existing map instance
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-      }
+        // Remove existing map instance
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.remove();
+          mapInstanceRef.current = null;
+        }
 
-      // If no plots, show default view
+        // If no plots, show default view
       if (!plots || plots.length === 0) {
         const map = window.L.map(mapRef.current).setView([45.5231, -122.6765], 10);
         mapInstanceRef.current = map;
@@ -60,51 +82,65 @@ export default function DashboardMap({ plots }: DashboardMapProps) {
         return;
       }
 
-      // Create new map
-      const map = window.L.map(mapRef.current);
-      mapInstanceRef.current = map;
+        // Create new map
+        const map = window.L.map(mapRef.current);
+        mapInstanceRef.current = map;
 
-      // Add dark tile layer
-      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 20
-      }).addTo(map);
+        // Add dark tile layer
+        window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          subdomains: 'abcd',
+          maxZoom: 20
+        }).addTo(map);
 
-      // Add plots as circles
-      const group = window.L.featureGroup();
-      
-      plots.forEach((plot) => {
-        // Calculate circle radius based on plot area (scale it appropriately for map)
-        const radius = Math.sqrt(plot.area) * 2; // Adjust multiplier as needed
+        // Add plots as circles
+        const group = window.L.featureGroup();
         
-        // Create circle with semi-transparent green
-        const circle = window.L.circle([plot.latitude, plot.longitude], {
-          color: '#22c55e',
-          weight: 2,
-          fillColor: '#22c55e',
-          fillOpacity: 0.3,
-          radius: radius
+        plots.forEach((plot) => {
+          // Calculate circle radius based on plot area (scale it appropriately for map)
+          const radius = Math.sqrt(plot.area) * 2; // Adjust multiplier as needed
+          
+          // Create circle with semi-transparent green
+          const circle = window.L.circle([plot.latitude, plot.longitude], {
+            color: '#22c55e',
+            weight: 2,
+            fillColor: '#22c55e',
+            fillOpacity: 0.3,
+            radius: radius
+          });
+
+          // Add popup with plot info
+          circle.bindPopup(`
+            <div style="color: #ffffff; background: transparent; border: none; font-family: Inter, system-ui, sans-serif;">
+              <strong style="color: #ffffff;">${plot.name}</strong><br>
+              ${plot.area} m² • ${plot.bambooType}<br>
+              Status: ${plot.status.charAt(0).toUpperCase() + plot.status.slice(1)}
+            </div>
+          `);
+
+          group.addLayer(circle);
         });
 
-        // Add popup with plot info
-        circle.bindPopup(`
-          <div style="color: #ffffff; background: transparent; border: none; font-family: Inter, system-ui, sans-serif;">
-            <strong style="color: #ffffff;">${plot.name}</strong><br>
-            ${plot.area} m² • ${plot.bambooType}<br>
-            Status: ${plot.status.charAt(0).toUpperCase() + plot.status.slice(1)}
-          </div>
-        `);
+        // Add the group to the map
+        group.addTo(map);
 
-        group.addLayer(circle);
-      });
-
-      // Add the group to the map
-      group.addTo(map);
-
-      // Fit map bounds to show all plots
-      if (plots.length > 0) {
-        map.fitBounds(group.getBounds(), { padding: [20, 20] });
+        // Fit map bounds to show all plots
+        if (plots.length > 0) {
+          map.fitBounds(group.getBounds(), { padding: [20, 20] });
+        }
+      } catch (error) {
+        console.error('Error initializing Leaflet map:', error);
+        // Show a fallback message in the map container
+        if (mapRef.current) {
+          mapRef.current.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #1e293b; color: #64748b; font-family: Inter, sans-serif;">
+              <div style="text-align: center;">
+                <p>Map temporarily unavailable</p>
+                <p style="font-size: 0.875rem; margin-top: 0.5rem;">Plot data is available in the list below</p>
+              </div>
+            </div>
+          `;
+        }
       }
     };
 
