@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import MapComponent from "@/components/map-component";
+import NasaMapComponent from "@/components/nasa-map-component";
 import type { Plot } from "@shared/schema";
 
 export default function PlotDetail() {
@@ -183,14 +183,14 @@ export default function PlotDetail() {
           <Card className="bg-card border-border">
             <CardContent className="p-6">
               <h3 className="text-lg font-medium mb-4 text-primary">Location</h3>
-              <div className="h-96 rounded-lg overflow-hidden">
-                <MapComponent 
+              <div className="rounded-lg overflow-hidden">
+                <NasaMapComponent 
                   latitude={plot.latitude} 
                   longitude={plot.longitude} 
-                  plotName={plot.name}
-                  area={plot.area}
-                  bambooType={plot.bambooType}
-                  status={plot.status}
+                  height={384}
+                  onError={(error) => {
+                    console.error('NASA Map Error:', error);
+                  }}
                 />
               </div>
             </CardContent>
