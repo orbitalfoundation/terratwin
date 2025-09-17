@@ -474,7 +474,7 @@ export default function MapComponent({
       
       // Clear existing plot spheres
       plotSpheresRef.current.forEach(sphere => {
-        sceneRef.current.remove(sphere);
+        tilesRef.current.group.remove(sphere); // Remove from tiles group where they were added
         sphere.geometry.dispose();
         sphere.material.dispose();
       });
@@ -499,12 +499,12 @@ export default function MapComponent({
       const radius = EARTH_RADIUS * 1.01; // Just above Earth surface
       
       testSphere.position.set(
-        radius * Math.cos(lat) * Math.sin(lon), // x = radius * cos(lat) * sin(lon)
-        radius * Math.cos(lat) * Math.cos(lon), // y = radius * cos(lat) * cos(lon)  
-        radius * Math.sin(lat)                  // z = radius * sin(lat)
+        radius * Math.cos(lat) * Math.cos(lon), // x = radius * cos(lat) * cos(lon) - CORRECT ECEF
+        radius * Math.cos(lat) * Math.sin(lon), // y = radius * cos(lat) * sin(lon) - CORRECT ECEF  
+        radius * Math.sin(lat)                  // z = radius * sin(lat) - CORRECT ECEF
       );
       testSphere.layers.set(PLOTS_LAYER);
-      sceneRef.current.add(testSphere);
+      tilesRef.current.group.add(testSphere); // Add to tiles group, not scene root
       plotSpheresRef.current.push(testSphere);
       console.log('DEBUG: Added red test sphere at lat=0, lon=45, position:', testSphere.position);
 
@@ -554,7 +554,7 @@ export default function MapComponent({
         sphere.layers.set(PLOTS_LAYER);
         sphere.userData = { plot };
         
-        sceneRef.current.add(sphere);
+        tilesRef.current.group.add(sphere); // Add to tiles group for proper coordinate frame
         plotSpheresRef.current.push(sphere);
       });
     };
