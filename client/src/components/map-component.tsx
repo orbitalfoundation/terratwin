@@ -480,25 +480,10 @@ export default function MapComponent({
       });
       plotSpheresRef.current = [];
 
-      // DEBUG: Add test spheres to verify rendering
-      console.log('DEBUG: Adding test spheres for debugging');
+      // DEBUG: Add test sphere to verify positioning
+      console.log('DEBUG: Adding test sphere for debugging');
       
-      // Test sphere 1: Large green sphere slightly bigger than Earth at origin
-      const earthTestGeometry = new SphereGeometry(EARTH_RADIUS * 1.2, 32, 32);
-      const earthTestMaterial = new MeshBasicMaterial({ 
-        color: 0x00ff00,
-        opacity: 0.3,
-        transparent: true,
-        wireframe: true
-      });
-      const earthTestSphere = new Mesh(earthTestGeometry, earthTestMaterial);
-      earthTestSphere.position.set(0, 0, 0);
-      earthTestSphere.layers.set(PLOTS_LAYER);
-      sceneRef.current.add(earthTestSphere);
-      plotSpheresRef.current.push(earthTestSphere);
-      console.log('DEBUG: Added green test sphere at origin, radius:', EARTH_RADIUS * 1.2);
-
-      // Test sphere 2: Large red sphere at lat=0, lon=0 (equator, prime meridian)
+      // Test sphere: Large red sphere at lat=0, lon=0 (equator, prime meridian)
       const testSphereRadius = EARTH_RADIUS * 0.2;
       const testSphereGeometry = new SphereGeometry(testSphereRadius, 16, 16);
       const testSphereMaterial = new MeshBasicMaterial({ 
