@@ -291,7 +291,7 @@ export default function MapComponent({
         // Create controls based on view mode
         let controls;
         if (viewMode === "globe") {
-          controls = new GlobeControls(scene, camera, renderer.domElement);
+          controls = new GlobeControls(scene, camera, renderer.domElement, null);
           controls.enableDamping = true;
         } else {
           controls = new OrbitControls(camera, renderer.domElement);

@@ -136,7 +136,7 @@ export default function NasaMap() {
                 latitude={lat}
                 longitude={lon}
                 height={600}
-                viewMode="orbit"
+                viewMode="globe"
                 enableBoundary={enableBoundary}
                 boundaryPoints={enableBoundary ? defaultBoundaryPoints : []}
                 onError={(error) => {
