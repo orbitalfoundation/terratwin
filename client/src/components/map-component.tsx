@@ -499,9 +499,9 @@ export default function MapComponent({
       const radius = EARTH_RADIUS * 1.01; // Just above Earth surface
       
       testSphere.position.set(
-        radius * Math.cos(lat) * Math.cos(lon), // x = radius * 1 * 1 = radius
-        radius * Math.cos(lat) * Math.sin(lon), // y = radius * 1 * 0 = 0  
-        radius * Math.sin(lat)                  // z = radius * 0 = 0
+        radius * Math.cos(lat) * Math.sin(lon), // x = radius * cos(lat) * sin(lon)
+        radius * Math.cos(lat) * Math.cos(lon), // y = radius * cos(lat) * cos(lon)  
+        radius * Math.sin(lat)                  // z = radius * sin(lat)
       );
       testSphere.layers.set(PLOTS_LAYER);
       sceneRef.current.add(testSphere);
