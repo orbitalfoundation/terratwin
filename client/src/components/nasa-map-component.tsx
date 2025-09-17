@@ -312,7 +312,7 @@ export default function NasaMapComponent({
           CAMERA_NEAR_CLIP,
           CAMERA_FAR_CLIP
         );
-        camera.position.set(1, 1, 1).multiplyScalar(1.5);
+        camera.position.set(1, 1, 1).multiplyScalar(5.0);
         cameraRef.current = camera;
 
         // Setup controls
