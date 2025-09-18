@@ -30,6 +30,19 @@ interface MapComponentProps {
   existingPolygon?: [number, number, number][];
 }
 
+// Debug logging utility
+const debugLog = async (event: string, data?: any) => {
+  try {
+    await fetch('/api/debug-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, data })
+    });
+  } catch (e) {
+    console.warn('Debug log failed:', e);
+  }
+};
+
 export default function MapComponent({ 
   latitude = 7.6455,
   longitude = 122.4,
@@ -608,6 +621,12 @@ export default function MapComponent({
     polygonDotsRef.current.push(dot);
     
     console.log('DEBUG: Added visual dot at', point, 'Total dots:', polygonDotsRef.current.length);
+    debugLog('visual_dot_added', {
+      position: point,
+      sphereRadius: 1000,
+      totalDotsInScene: polygonDotsRef.current.length,
+      sceneChildrenCount: sceneRef.current.children.length
+    });
   };
 
   const clearPolygonVisuals = () => {
@@ -715,15 +734,23 @@ export default function MapComponent({
 
     console.log('DEBUG: Canvas and controls ready!');
 
-    const handleInteraction = (event: MouseEvent | TouchEvent) => {
+    const handleInteraction = async (event: MouseEvent | TouchEvent) => {
       console.log('DEBUG: Interaction detected!', { 
         isDrawing: isDrawingRef.current, 
         currentPoints: polygonPointsRef.current.length,
         eventType: event.type 
       });
       
+      await debugLog('interaction_triggered', {
+        eventType: event.type,
+        isDrawing: isDrawingRef.current,
+        pointCount: polygonPointsRef.current.length,
+        timestamp: Date.now()
+      });
+      
       if (!tilesRef.current) {
         console.log('DEBUG: No tiles ref available');
+        await debugLog('no_tiles_ref', { tilesRefExists: !!tilesRef.current });
         return;
       }
 
@@ -758,6 +785,13 @@ export default function MapComponent({
       const intersects = raycaster.intersectObject(tilesRef.current.group, true);
 
       console.log('DEBUG: Ray intersections found:', intersects.length);
+      debugLog('ray_intersections', {
+        intersectionCount: intersects.length,
+        firstIntersection: intersects[0] ? {
+          point: intersects[0].point,
+          distance: intersects[0].distance
+        } : null
+      });
 
       if (intersects.length > 0) {
         const intersectionPoint = intersects[0].point.clone();
@@ -792,6 +826,12 @@ export default function MapComponent({
       canvas.style.touchAction = 'none'; // Prevent default touch behaviors
       
       console.log('DEBUG: Added click and touch event listeners');
+      debugLog('event_listeners_added', {
+        canvasElement: canvas.tagName,
+        canvasClass: canvas.className,
+        boundingRect: canvas.getBoundingClientRect(),
+        hasEventListeners: true
+      });
     }
 
     return () => {

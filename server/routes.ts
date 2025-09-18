@@ -71,6 +71,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug logging endpoint
+  app.post("/api/debug-log", async (req, res) => {
+    const { event, data } = req.body;
+    const timestamp = new Date().toISOString();
+    console.log(`🐛 CLIENT DEBUG [${timestamp}]: ${event}`, data || '');
+    return res.json({ logged: true });
+  });
 
   // Get Cesium key for frontend
   app.get("/api/cesium-key", async (req, res) => {
