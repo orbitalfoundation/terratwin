@@ -168,6 +168,29 @@ export default function MapComponent({
       try {
         console.info('MapComponent: Loading 3D engine...');
         
+        // CRITICAL: Clean up any existing renderer/canvas to prevent stacking
+        if (rendererRef.current) {
+          console.info('MapComponent: Cleaning up previous renderer...');
+          const container = containerRef.current;
+          if (container && rendererRef.current.domElement.parentNode === container) {
+            container.removeChild(rendererRef.current.domElement);
+          }
+          rendererRef.current.dispose();
+          rendererRef.current = null;
+        }
+        
+        // Clean up controls
+        if (controlsRef.current) {
+          controlsRef.current.dispose?.();
+          controlsRef.current = null;
+        }
+        
+        // Clean up tiles
+        if (tilesRef.current) {
+          tilesRef.current.dispose();
+          tilesRef.current = null;
+        }
+        
         // Dynamically load Three.js and 3d-tiles-renderer
         const [
           Three,
