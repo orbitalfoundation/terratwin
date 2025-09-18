@@ -715,22 +715,39 @@ export default function MapComponent({
 
     console.log('DEBUG: Canvas and controls ready!');
 
-    const handleClick = (event: MouseEvent) => {
-      console.log('DEBUG: Click detected!', { isDrawing: isDrawingRef.current, currentPoints: polygonPointsRef.current.length });
+    const handleInteraction = (event: MouseEvent | TouchEvent) => {
+      console.log('DEBUG: Interaction detected!', { 
+        isDrawing: isDrawingRef.current, 
+        currentPoints: polygonPointsRef.current.length,
+        eventType: event.type 
+      });
       
       if (!tilesRef.current) {
         console.log('DEBUG: No tiles ref available');
         return;
       }
 
-      // Calculate mouse position in normalized device coordinates
+      // Get client coordinates from mouse or touch event
+      let clientX: number, clientY: number;
+      if (event.type.startsWith('touch')) {
+        const touchEvent = event as TouchEvent;
+        const touch = touchEvent.touches[0] || touchEvent.changedTouches[0];
+        clientX = touch.clientX;
+        clientY = touch.clientY;
+      } else {
+        const mouseEvent = event as MouseEvent;
+        clientX = mouseEvent.clientX;
+        clientY = mouseEvent.clientY;
+      }
+
+      // Calculate position in normalized device coordinates
       const rect = canvas.getBoundingClientRect();
       const mouse = {
-        x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        y: -((event.clientY - rect.top) / rect.height) * 2 + 1
+        x: ((clientX - rect.left) / rect.width) * 2 - 1,
+        y: -((clientY - rect.top) / rect.height) * 2 + 1
       };
 
-      console.log('DEBUG: Mouse position:', mouse);
+      console.log('DEBUG: Input position:', mouse);
 
       // Update the raycaster
       const { Raycaster, Vector2 } = ThreeRef.current;
@@ -767,14 +784,22 @@ export default function MapComponent({
       polygonPointsRef.current = [];
       clearPolygonVisuals();
       controls.enabled = false; // Disable camera controls while drawing
-      canvas.addEventListener('click', handleClick);
+      
+      // Add both mouse and touch event listeners for cross-device support
+      canvas.addEventListener('click', handleInteraction);
+      canvas.addEventListener('touchend', handleInteraction);
       canvas.style.cursor = 'crosshair';
+      canvas.style.touchAction = 'none'; // Prevent default touch behaviors
+      
+      console.log('DEBUG: Added click and touch event listeners');
     }
 
     return () => {
       if (canvas) {
-        canvas.removeEventListener('click', handleClick);
+        canvas.removeEventListener('click', handleInteraction);
+        canvas.removeEventListener('touchend', handleInteraction);
         canvas.style.cursor = 'default';
+        canvas.style.touchAction = '';
       }
       if (controls) {
         controls.enabled = true;
