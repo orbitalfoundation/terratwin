@@ -420,7 +420,7 @@ export default function MapComponent({
       isActive = false;
       // Cleanup will be handled by other effects
     };
-  }, [cesiumToken, viewMode, latitude, longitude, onError]);
+  }, [cesiumToken]); // Only rebuild engine when token changes
 
   // Handle boundary clipping
   useEffect(() => {
