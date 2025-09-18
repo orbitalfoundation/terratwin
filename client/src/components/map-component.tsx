@@ -779,7 +779,8 @@ export default function MapComponent({
     if (!editingBoundary && isDrawingRef.current && polygonPointsRef.current.length >= 3 && onPolygonComplete) {
       // Remove visual radial elevation offset and return raw XYZ coordinates for storage
       const coords: [number, number, number][] = polygonPointsRef.current.map((point: any) => {
-        const originalPoint = point.clone();
+        // Convert to Three.js Vector3 if it's a plain object
+        const originalPoint = new (ThreeRef.current.Vector3)(point.x, point.y, point.z);
         // Remove the radial elevation offset by subtracting along the normalized position vector
         const normalizedPosition = originalPoint.clone().normalize();
         originalPoint.sub(normalizedPosition.multiplyScalar(1000));
