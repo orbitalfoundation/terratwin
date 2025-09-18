@@ -783,7 +783,7 @@ export default function MapComponent({
       
       onPolygonComplete(coords);
       isDrawingRef.current = false;
-      clearPolygonVisuals();
+      // DON'T clear visuals - let the existing polygon rendering effect handle display
       return; // Exit early after handling completion
     }
     
