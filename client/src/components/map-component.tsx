@@ -767,11 +767,10 @@ export default function MapComponent({
         clientY = mouseEvent.clientY;
       }
 
-      // Calculate position in normalized device coordinates
-      const rect = canvas.getBoundingClientRect();
+      // Calculate position in normalized device coordinates (matching reference)
       const mouse = {
-        x: ((clientX - rect.left) / rect.width) * 2 - 1,
-        y: -((clientY - rect.top) / rect.height) * 2 + 1
+        x: (clientX / window.innerWidth) * 2 - 1,
+        y: -(clientY / window.innerHeight) * 2 + 1
       };
 
       console.log('DEBUG: Input position:', mouse);
@@ -781,7 +780,7 @@ export default function MapComponent({
       const raycaster = new Raycaster();
       raycaster.setFromCamera(new Vector2(mouse.x, mouse.y), cameraRef.current);
 
-      // Check for intersections with the tiles group
+      // Check for intersections with the tiles group (matching reference)
       const intersects = raycaster.intersectObject(tilesRef.current.group, true);
 
       console.log('DEBUG: Ray intersections found:', intersects.length);
