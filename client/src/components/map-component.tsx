@@ -893,24 +893,9 @@ export default function MapComponent({
       isDrawingRef.current = true;
       clearPolygonVisuals();
       
-      // Initialize with existing polygon data if available
-      if (existingPolygon?.length) {
-        // Apply visual +1000m offset to existing XYZ coordinates for editing
-        polygonPointsRef.current = existingPolygon.map(([x, y, z]) => {
-          return { x, y, z: z + 1000 }; // Add visual offset for editing
-        });
-        
-        // Add visual dots for existing points
-        polygonPointsRef.current.forEach(point => {
-          addPolygonDot(point);
-        });
-        
-        console.log(`DEBUG: Initialized editing with ${polygonPointsRef.current.length} existing points`);
-      } else {
-        // Start fresh polygon
-        polygonPointsRef.current = [];
-        console.log('DEBUG: Starting fresh polygon editing');
-      }
+      // Always start with fresh polygon - flush previous points as requested
+      polygonPointsRef.current = [];
+      console.log('DEBUG: Starting fresh polygon editing (previous points flushed)');
       // Keep controls enabled, just check drawing state in handler (like reference)
       
       // Add both mouse and touch event listeners for cross-device support
