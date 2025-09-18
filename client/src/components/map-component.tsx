@@ -832,9 +832,16 @@ export default function MapComponent({
       clearPolygonVisuals();
       controls.enabled = false; // Disable camera controls while drawing
       
-      // Add both mouse and touch event listeners for cross-device support
+      // Add both mouse and touch event listeners for cross-device support  
+      const testEventHandler = (e: Event) => {
+        console.log('🔴 TEST: Raw DOM event detected!', e.type);
+        debugLog('raw_dom_event', { type: e.type, target: e.target?.constructor?.name });
+      };
+      
       canvas.addEventListener('click', handleInteraction);
       canvas.addEventListener('touchend', handleInteraction);
+      canvas.addEventListener('mousedown', testEventHandler);  // Test any mouse interaction
+      canvas.addEventListener('touchstart', testEventHandler); // Test any touch interaction
       canvas.style.cursor = 'crosshair';
       canvas.style.touchAction = 'none'; // Prevent default touch behaviors
       
