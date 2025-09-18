@@ -65,8 +65,9 @@ export default function MapComponent({
   const [engineReady, setEngineReady] = useState(false);
   const ThreeRef = useRef<any>(null);
   
-  // Polygon editing state
-  const [currentPolygonPoints, setCurrentPolygonPoints] = useState<[number, number, number][]>([]);
+  // Polygon editing refs (no React state to avoid re-renders)
+  const isDrawingRef = useRef(false);
+  const polygonPointsRef = useRef<any[]>([]);
   const currentPolygonMeshRef = useRef<any>(null);
 
   // Constants - adjusted based on view mode
@@ -270,18 +271,7 @@ export default function MapComponent({
         if (containerRef.current) {
           containerRef.current.style.position = 'relative';
           containerRef.current.style.cursor = 'grab';
-          // Add event forwarding from container to canvas
-          const forwardMouseEvent = (e: MouseEvent) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Create and dispatch the same event on canvas
-            const canvasEvent = new MouseEvent(e.type, e);
-            renderer.domElement.dispatchEvent(canvasEvent);
-          };
-          
-          containerRef.current.addEventListener('mousedown', forwardMouseEvent, { capture: true });
-          containerRef.current.addEventListener('mousemove', forwardMouseEvent, { capture: true });
-          containerRef.current.addEventListener('mouseup', forwardMouseEvent, { capture: true });
+          // No event forwarding - attach handlers directly to renderer.domElement to avoid infinite loops
         }
         
         
@@ -598,85 +588,10 @@ export default function MapComponent({
     return () => window.removeEventListener('resize', handleResize);
   }, [engineReady]);
 
-  // Handle polygon editing clicks
-  useEffect(() => {
-    if (!engineReady || !rendererRef.current || !cameraRef.current || !editingBoundary) return;
-
-    const handleClick = (event: MouseEvent) => {
-      if (!rendererRef.current || !cameraRef.current) return;
-
-      const rect = rendererRef.current.domElement.getBoundingClientRect();
-      const mouse = {
-        x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        y: -((event.clientY - rect.top) / rect.height) * 2 + 1
-      };
-
-      // Create a raycaster to find intersection with Earth surface
-      const { Raycaster, Vector3 } = ThreeRef.current;
-      const raycaster = new Raycaster();
-      raycaster.setFromCamera(mouse, cameraRef.current);
-
-      // Intersect with Earth surface (sphere at origin with Earth radius)
-      const { Sphere } = ThreeRef.current;
-      const earthCenter = new Vector3(0, 0, 0);
-      const earthSphere = new Sphere(earthCenter, EARTH_RADIUS);
-      const intersections = raycaster.ray.intersectSphere(earthSphere, new Vector3());
-
-      if (intersections) {
-        // Convert ECEF coordinates back to lat/lon/elevation
-        // Using proper coordinate mapping: lon = atan2(z, x), lat = asin(y/R)
-        const { x, y, z } = intersections;
-        const longitude = Math.atan2(z, x) * 180 / Math.PI;
-        const latitude = Math.asin(y / EARTH_RADIUS) * 180 / Math.PI;
-        const elevation = 0; // Default elevation at sea level
-
-        // Add point to current polygon
-        setCurrentPolygonPoints(prev => [...prev, [longitude, latitude, elevation]]);
-      }
-    };
-
-    const canvas = rendererRef.current.domElement;
-    canvas.addEventListener('click', handleClick);
-    canvas.style.cursor = 'crosshair';
-    
-    // Disable orbit controls during polygon editing to prevent accidental camera movement
-    if (controlsRef.current) {
-      controlsRef.current.enabled = false;
-    }
-
-    return () => {
-      canvas.removeEventListener('click', handleClick);
-      canvas.style.cursor = 'default';
-      
-      // Re-enable orbit controls when exiting polygon editing
-      if (controlsRef.current) {
-        controlsRef.current.enabled = true;
-      }
-    };
-  }, [editingBoundary, engineReady]);
-
-  // Initialize polygon from existing data when entering edit mode
-  useEffect(() => {
-    if (editingBoundary && existingPolygon.length > 0) {
-      setCurrentPolygonPoints(existingPolygon);
-    } else if (!editingBoundary) {
-      // Only reset if we have a callback to save, otherwise preserve points
-      // Use a ref to get current polygon points to avoid dependency issues
-      setCurrentPolygonPoints(currentPoints => {
-        if (onPolygonComplete && currentPoints.length >= 3) {
-          onPolygonComplete(currentPoints);
-        }
-        return [];
-      });
-    }
-  }, [editingBoundary, existingPolygon, onPolygonComplete]);
-
-  // Render current polygon being edited
-  useEffect(() => {
-    if (!engineReady || !sceneRef.current || !ThreeRef.current) return;
-
-    // Clean up existing polygon mesh
+  // Helper functions for polygon editing (like in reference implementation)
+  const clearPolygonVisuals = () => {
     if (currentPolygonMeshRef.current) {
+      // CRITICAL: Add/remove from tiles.group to maintain proper coordinate frame
       if (tilesRef.current?.group) {
         tilesRef.current.group.remove(currentPolygonMeshRef.current);
       }
@@ -684,54 +599,142 @@ export default function MapComponent({
       currentPolygonMeshRef.current.material?.dispose();
       currentPolygonMeshRef.current = null;
     }
+  };
 
-    // Only create mesh if we have at least 3 points for a valid polygon
-    if (currentPolygonPoints.length >= 3) {
-      const { Vector3, MeshBasicMaterial, Mesh, BufferGeometry, Float32BufferAttribute } = ThreeRef.current;
-      
-      // Convert lat/lon points to ECEF coordinates
-      const vertices: number[] = [];
-      currentPolygonPoints.forEach(([longitude, latitude, elevation]) => {
-        const lat = latitude * Math.PI / 180;
-        const lon = longitude * Math.PI / 180;
-        const radius = EARTH_RADIUS * 1.005; // Slightly above Earth surface
-        
-        vertices.push(
-          radius * Math.cos(lat) * Math.cos(lon), // x
-          radius * Math.cos(lat) * Math.sin(lon), // y
-          radius * Math.sin(lat)                  // z
-        );
-      });
+  const updatePolygonVisual = () => {
+    clearPolygonVisuals();
+    
+    if (!ThreeRef.current || polygonPointsRef.current.length < 3) return;
+    
+    const { Vector3, MeshBasicMaterial, Mesh, BufferGeometry, Float32BufferAttribute } = ThreeRef.current;
+    
+    // Convert the ECEF points to vertices for rendering
+    const vertices: number[] = [];
+    polygonPointsRef.current.forEach((point: any) => {
+      vertices.push(point.x, point.y, point.z);
+    });
 
-      // Create triangulated faces for the polygon (fan triangulation from first vertex)
-      const indices: number[] = [];
-      for (let i = 1; i < currentPolygonPoints.length - 1; i++) {
-        indices.push(0, i, i + 1);
-      }
-
-      // Create BufferGeometry
-      const geometry = new BufferGeometry();
-      geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
-      geometry.setIndex(indices);
-      geometry.computeVertexNormals();
-
-      // Create semi-transparent green material
-      const material = new MeshBasicMaterial({
-        color: 0x00ff00,
-        opacity: 0.3,
-        transparent: true,
-        side: ThreeRef.current.DoubleSide
-      });
-
-      // Create mesh and add to scene
-      const mesh = new Mesh(geometry, material);
-      mesh.layers.set(BOUNDARY_LAYER);
-      if (tilesRef.current?.group) {
-        tilesRef.current.group.add(mesh);
-        currentPolygonMeshRef.current = mesh;
-      }
+    // Create triangulated faces for the polygon (fan triangulation from first vertex)
+    const indices: number[] = [];
+    for (let i = 1; i < polygonPointsRef.current.length - 1; i++) {
+      indices.push(0, i, i + 1);
     }
-  }, [currentPolygonPoints, engineReady]);
+
+    // Create BufferGeometry
+    const geometry = new BufferGeometry();
+    geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+
+    // Create semi-transparent green material
+    const material = new MeshBasicMaterial({
+      color: 0x00ff00,
+      opacity: 0.3,
+      transparent: true,
+      side: ThreeRef.current.DoubleSide
+    });
+
+    // Create mesh and add to tiles group (CRITICAL: proper coordinate frame)
+    const mesh = new Mesh(geometry, material);
+    mesh.layers.set(BOUNDARY_LAYER);
+    if (tilesRef.current?.group) {
+      tilesRef.current.group.add(mesh);
+      currentPolygonMeshRef.current = mesh;
+    }
+  };
+
+  // Simple polygon editing effect (like reference implementation)
+  useEffect(() => {
+    // Handle polygon completion FIRST, before ANY other checks
+    if (!editingBoundary && isDrawingRef.current && polygonPointsRef.current.length >= 3 && onPolygonComplete) {
+      const coords: [number, number, number][] = polygonPointsRef.current.map((point: any) => {
+        // Convert back to tiles coordinate frame for proper lat/lon
+        const tilesInverseMatrix = tilesRef.current.group.matrixWorld.clone().invert();
+        const localPoint = point.clone().applyMatrix4(tilesInverseMatrix);
+        const radius = localPoint.length();
+        const lat = Math.asin(localPoint.z / radius) * 180 / Math.PI;
+        const lon = Math.atan2(localPoint.y, localPoint.x) * 180 / Math.PI;
+        const height = radius - EARTH_RADIUS; // Approximate height above surface
+        return [lon, lat, height];
+      });
+      onPolygonComplete(coords);
+      isDrawingRef.current = false;
+      clearPolygonVisuals();
+      return; // Exit early after handling completion
+    }
+    
+    const canvas = rendererRef.current?.domElement;
+    const controls = controlsRef.current;
+    
+    if (!canvas || !controls) {
+      console.log('DEBUG: Missing canvas or controls:', { canvas: !!canvas, controls: !!controls });
+      return;
+    }
+
+    const handleClick = (event: MouseEvent) => {
+      if (!tilesRef.current) return;
+
+      // Calculate mouse position in normalized device coordinates
+      const rect = canvas.getBoundingClientRect();
+      const mouse = {
+        x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        y: -((event.clientY - rect.top) / rect.height) * 2 + 1
+      };
+
+      // Update the raycaster
+      const { Raycaster, Vector2 } = ThreeRef.current;
+      const raycaster = new Raycaster();
+      raycaster.setFromCamera(new Vector2(mouse.x, mouse.y), cameraRef.current);
+
+      // Check for intersections with the tiles group
+      const intersects = raycaster.intersectObject(tilesRef.current.group, true);
+
+      if (intersects.length > 0) {
+        const intersectionPoint = intersects[0].point.clone();
+        
+        // Convert the world space point to the tiles coordinate frame
+        const tilesInverseMatrix = tilesRef.current.group.matrixWorld.clone().invert();
+        const localPoint = intersectionPoint.clone().applyMatrix4(tilesInverseMatrix);
+
+        // Convert ECEF coordinates to lat/lon (like in reference)
+        const radius = localPoint.length();
+        const lat = Math.asin(localPoint.z / radius) * 180 / Math.PI;
+        const lon = Math.atan2(localPoint.y, localPoint.x) * 180 / Math.PI;
+
+        console.log(`Click location: lat ${lat.toFixed(4)}°, lon ${lon.toFixed(4)}°`);
+
+        // Only add to polygon if we're drawing
+        if (isDrawingRef.current) {
+          // Move the point outward from the globe center like in reference
+          const direction = intersectionPoint.clone().normalize();
+          const elevatedPoint = intersectionPoint.add(direction.multiplyScalar(5000));
+          
+          polygonPointsRef.current.push(elevatedPoint);
+          updatePolygonVisual();
+        }
+      }
+    };
+
+    if (editingBoundary) {
+      // Start polygon editing
+      isDrawingRef.current = true;
+      polygonPointsRef.current = [];
+      clearPolygonVisuals();
+      controls.enabled = false; // Disable camera controls while drawing
+      canvas.addEventListener('click', handleClick);
+      canvas.style.cursor = 'crosshair';
+    }
+
+    return () => {
+      if (canvas) {
+        canvas.removeEventListener('click', handleClick);
+        canvas.style.cursor = 'default';
+      }
+      if (controls) {
+        controls.enabled = true;
+      }
+    };
+  }, [editingBoundary, engineReady, onPolygonComplete]);
 
   // Cleanup on unmount
   useEffect(() => {
