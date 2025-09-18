@@ -69,6 +69,7 @@ export default function MapComponent({
   const isDrawingRef = useRef(false);
   const polygonPointsRef = useRef<any[]>([]);
   const currentPolygonMeshRef = useRef<any>(null);
+  const polygonDotsRef = useRef<any[]>([]); // Track visual dots for polygon points
 
   // Constants - adjusted based on view mode
   const CAMERA_NEAR_CLIP = viewMode === "globe" ? 1 : 200;
@@ -589,7 +590,28 @@ export default function MapComponent({
   }, [engineReady]);
 
   // Helper functions for polygon editing (like in reference implementation)
+  const addPolygonDot = (point: any) => {
+    if (!ThreeRef.current || !sceneRef.current) return;
+    
+    const { SphereGeometry, MeshBasicMaterial, Mesh } = ThreeRef.current;
+    
+    // Create small red sphere to mark the point
+    const geometry = new SphereGeometry(1000, 8, 8); // 1km radius sphere
+    const material = new MeshBasicMaterial({ color: 0xff0000 }); // Red color
+    const dot = new Mesh(geometry, material);
+    
+    // Position the dot at the intersection point
+    dot.position.copy(point);
+    
+    // Add to scene and track it
+    sceneRef.current.add(dot);
+    polygonDotsRef.current.push(dot);
+    
+    console.log('DEBUG: Added visual dot at', point, 'Total dots:', polygonDotsRef.current.length);
+  };
+
   const clearPolygonVisuals = () => {
+    // Clear polygon mesh
     if (currentPolygonMeshRef.current) {
       // CRITICAL: Add/remove from tiles.group to maintain proper coordinate frame
       if (tilesRef.current?.group) {
@@ -599,6 +621,18 @@ export default function MapComponent({
       currentPolygonMeshRef.current.material?.dispose();
       currentPolygonMeshRef.current = null;
     }
+    
+    // Clear polygon dots
+    polygonDotsRef.current.forEach(dot => {
+      if (sceneRef.current) {
+        sceneRef.current.remove(dot);
+      }
+      dot.geometry?.dispose();
+      dot.material?.dispose();
+    });
+    polygonDotsRef.current = [];
+    
+    console.log('DEBUG: Cleared all polygon visuals');
   };
 
   const updatePolygonVisual = () => {
@@ -645,18 +679,21 @@ export default function MapComponent({
 
   // Simple polygon editing effect (like reference implementation)
   useEffect(() => {
+    console.log('DEBUG: Polygon editing effect triggered:', { 
+      editingBoundary, 
+      engineReady,
+      hasRenderer: !!rendererRef.current,
+      hasCanvas: !!rendererRef.current?.domElement,
+      hasControls: !!controlsRef.current
+    });
+
     // Handle polygon completion FIRST, before ANY other checks
     if (!editingBoundary && isDrawingRef.current && polygonPointsRef.current.length >= 3 && onPolygonComplete) {
-      const coords: [number, number, number][] = polygonPointsRef.current.map((point: any) => {
-        // Convert back to tiles coordinate frame for proper lat/lon
-        const tilesInverseMatrix = tilesRef.current.group.matrixWorld.clone().invert();
-        const localPoint = point.clone().applyMatrix4(tilesInverseMatrix);
-        const radius = localPoint.length();
-        const lat = Math.asin(localPoint.z / radius) * 180 / Math.PI;
-        const lon = Math.atan2(localPoint.y, localPoint.x) * 180 / Math.PI;
-        const height = radius - EARTH_RADIUS; // Approximate height above surface
-        return [lon, lat, height];
-      });
+      // Stay with XYZ coordinates for now as user suggested
+      const coords: [number, number, number][] = polygonPointsRef.current.map((point: any) => [
+        point.x, point.y, point.z
+      ]);
+      console.log('DEBUG: Completing polygon with XYZ coords:', coords);
       onPolygonComplete(coords);
       isDrawingRef.current = false;
       clearPolygonVisuals();
@@ -667,12 +704,24 @@ export default function MapComponent({
     const controls = controlsRef.current;
     
     if (!canvas || !controls) {
-      console.log('DEBUG: Missing canvas or controls:', { canvas: !!canvas, controls: !!controls });
+      console.log('DEBUG: Missing canvas or controls, waiting...', { 
+        canvas: !!canvas, 
+        controls: !!controls,
+        editingBoundary,
+        engineReady 
+      });
       return;
     }
 
+    console.log('DEBUG: Canvas and controls ready!');
+
     const handleClick = (event: MouseEvent) => {
-      if (!tilesRef.current) return;
+      console.log('DEBUG: Click detected!', { isDrawing: isDrawingRef.current, currentPoints: polygonPointsRef.current.length });
+      
+      if (!tilesRef.current) {
+        console.log('DEBUG: No tiles ref available');
+        return;
+      }
 
       // Calculate mouse position in normalized device coordinates
       const rect = canvas.getBoundingClientRect();
@@ -680,6 +729,8 @@ export default function MapComponent({
         x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
         y: -((event.clientY - rect.top) / rect.height) * 2 + 1
       };
+
+      console.log('DEBUG: Mouse position:', mouse);
 
       // Update the raycaster
       const { Raycaster, Vector2 } = ThreeRef.current;
@@ -689,29 +740,24 @@ export default function MapComponent({
       // Check for intersections with the tiles group
       const intersects = raycaster.intersectObject(tilesRef.current.group, true);
 
+      console.log('DEBUG: Ray intersections found:', intersects.length);
+
       if (intersects.length > 0) {
         const intersectionPoint = intersects[0].point.clone();
+        console.log('DEBUG: Intersection point (world):', intersectionPoint);
         
-        // Convert the world space point to the tiles coordinate frame
-        const tilesInverseMatrix = tilesRef.current.group.matrixWorld.clone().invert();
-        const localPoint = intersectionPoint.clone().applyMatrix4(tilesInverseMatrix);
-
-        // Convert ECEF coordinates to lat/lon (like in reference)
-        const radius = localPoint.length();
-        const lat = Math.asin(localPoint.z / radius) * 180 / Math.PI;
-        const lon = Math.atan2(localPoint.y, localPoint.x) * 180 / Math.PI;
-
-        console.log(`Click location: lat ${lat.toFixed(4)}°, lon ${lon.toFixed(4)}°`);
-
         // Only add to polygon if we're drawing
         if (isDrawingRef.current) {
-          // Move the point outward from the globe center like in reference
-          const direction = intersectionPoint.clone().normalize();
-          const elevatedPoint = intersectionPoint.add(direction.multiplyScalar(5000));
+          // Use the world space point directly for XYZ coordinates
+          polygonPointsRef.current.push(intersectionPoint);
+          console.log('DEBUG: Added point to polygon. Total points:', polygonPointsRef.current.length);
           
-          polygonPointsRef.current.push(elevatedPoint);
+          // Add visual dot for this point
+          addPolygonDot(intersectionPoint);
           updatePolygonVisual();
         }
+      } else {
+        console.log('DEBUG: No intersections found with tiles');
       }
     };
 
