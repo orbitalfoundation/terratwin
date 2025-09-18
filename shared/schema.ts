@@ -12,7 +12,7 @@ export const plots = pgTable("plots", {
   bambooType: text("bamboo_type").notNull(),
   status: text("status").notNull().default("planning"), // planning, active, inactive
   notes: text("notes"),
-  polygonOutline: json("polygon_outline"), // Array of [longitude, latitude, elevation] triplets
+  polygonOutline: json("polygon_outline"), // Array of [x, y, z] world coordinate triplets
   createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
@@ -27,9 +27,9 @@ export const insertPlotSchema = createInsertSchema(plots).omit({
   area: z.number().positive(),
   status: z.enum(["planning", "active", "inactive"]).default("planning"),
   polygonOutline: z.array(z.tuple([
-    z.number().min(-180).max(180), // longitude
-    z.number().min(-90).max(90),   // latitude
-    z.number()                     // elevation
+    z.number(), // x world coordinate
+    z.number(), // y world coordinate  
+    z.number()  // z world coordinate
   ])).optional(),
 });
 
