@@ -625,6 +625,96 @@ export default function MapComponent({
     return () => window.removeEventListener('resize', handleResize);
   }, [engineReady]);
 
+  // Coordinate conversion helpers using proper ellipsoid transforms
+  const lngLatElevationToXYZ = (lng: number, lat: number, elevation: number) => {
+    if (!tilesRef.current?.ellipsoid) return { x: 0, y: 0, z: 0 };
+    
+    // Convert degrees to radians
+    const lonRad = lng * Math.PI / 180;
+    const latRad = lat * Math.PI / 180;
+    
+    // Use ellipsoid to get accurate surface position
+    const ellipsoid = tilesRef.current.ellipsoid;
+    const cosLat = Math.cos(latRad);
+    const sinLat = Math.sin(latRad);
+    const cosLon = Math.cos(lonRad);
+    const sinLon = Math.sin(lonRad);
+    
+    // Calculate position on ellipsoid surface + elevation
+    const N = ellipsoid.radiiSquared.x / Math.sqrt(
+      ellipsoid.radiiSquared.x * cosLat * cosLat + 
+      ellipsoid.radiiSquared.z * sinLat * sinLat
+    );
+    
+    const h = elevation || 0;
+    const x = (N + h) * cosLat * cosLon;
+    const y = (N + h) * cosLat * sinLon;
+    const z = (N * (ellipsoid.radiiSquared.z / ellipsoid.radiiSquared.x) + h) * sinLat;
+    
+    return { x, y, z };
+  };
+
+  const xyzToLngLatElevation = (x: number, y: number, z: number) => {
+    if (!tilesRef.current?.ellipsoid) return [0, 0, 0] as [number, number, number];
+    
+    // Convert XYZ to longitude/latitude/elevation using ellipsoid
+    const ellipsoid = tilesRef.current.ellipsoid;
+    const p = Math.sqrt(x * x + y * y);
+    const theta = Math.atan2(z * ellipsoid.radiiSquared.x, p * ellipsoid.radiiSquared.z);
+    
+    const longitude = Math.atan2(y, x) * (180 / Math.PI);
+    const latitude = Math.atan2(
+      z + ellipsoid.eccentricitySquared * ellipsoid.radiiSquared.z * Math.pow(Math.sin(theta), 3),
+      p - ellipsoid.eccentricitySquared * ellipsoid.radiiSquared.x * Math.pow(Math.cos(theta), 3)
+    ) * (180 / Math.PI);
+    
+    const N = ellipsoid.radiiSquared.x / Math.sqrt(
+      ellipsoid.radiiSquared.x * Math.pow(Math.cos(latitude * Math.PI / 180), 2) + 
+      ellipsoid.radiiSquared.z * Math.pow(Math.sin(latitude * Math.PI / 180), 2)
+    );
+    
+    const elevation = p / Math.cos(latitude * Math.PI / 180) - N;
+    
+    return [longitude, latitude, elevation] as [number, number, number];
+  };
+
+  // Render existing polygon when not editing
+  useEffect(() => {
+    if (!engineReady || !tilesRef.current || !existingPolygon?.length || editingBoundary) return;
+
+    // Clear any existing polygon visuals
+    clearPolygonVisuals();
+
+    // Convert stored lng/lat/elevation coordinates to XYZ for rendering
+    const xyzPoints = existingPolygon.map(([lng, lat, elevation]) => {
+      const { x, y, z } = lngLatElevationToXYZ(lng, lat, elevation);
+      return { x, y: y, z: z + 1000 }; // Add 1000m visual offset for rendering only
+    });
+
+    // Add visual dots for each point
+    xyzPoints.forEach(point => {
+      addPolygonDot(point);
+    });
+
+    // Store the rendered polygon points for potential editing
+    if (polygonPointsRef.current) {
+      polygonPointsRef.current.length = 0; // Clear array
+      xyzPoints.forEach(point => {
+        polygonPointsRef.current.push(point);
+      });
+    }
+
+    console.log(`DEBUG: Rendered existing polygon with ${xyzPoints.length} points`);
+  }, [engineReady, existingPolygon, editingBoundary]);
+
+  // Clear polygon visuals when entering edit mode
+  useEffect(() => {
+    if (editingBoundary) {
+      // Don't clear here - let the editing effect handle initialization
+      console.log('DEBUG: Entering edit mode');
+    }
+  }, [editingBoundary]);
+
   // Helper functions for polygon editing (like in reference implementation)
   const addPolygonDot = (point: any) => {
     if (!ThreeRef.current || !sceneRef.current) return;
@@ -731,11 +821,13 @@ export default function MapComponent({
 
     // Handle polygon completion FIRST, before ANY other checks
     if (!editingBoundary && isDrawingRef.current && polygonPointsRef.current.length >= 3 && onPolygonComplete) {
-      // Stay with XYZ coordinates for now as user suggested
-      const coords: [number, number, number][] = polygonPointsRef.current.map((point: any) => [
-        point.x, point.y, point.z
-      ]);
-      console.log('DEBUG: Completing polygon with XYZ coords:', coords);
+      // Convert XYZ coordinates back to lng/lat/elevation for storage
+      const coords: [number, number, number][] = polygonPointsRef.current.map((point: any) => {
+        // Remove the visual +1000m offset before converting
+        const adjustedPoint = { x: point.x, y: point.y, z: point.z - 1000 };
+        return xyzToLngLatElevation(adjustedPoint.x, adjustedPoint.y, adjustedPoint.z);
+      });
+      console.log('DEBUG: Completing polygon with lng/lat/elevation coords:', coords);
       
       debugLog('polygon_completed', {
         totalPoints: coords.length,
@@ -853,8 +945,27 @@ export default function MapComponent({
     if (editingBoundary) {
       // Start polygon editing
       isDrawingRef.current = true;
-      polygonPointsRef.current = [];
       clearPolygonVisuals();
+      
+      // Initialize with existing polygon data if available
+      if (existingPolygon?.length) {
+        // Convert existing lng/lat/elevation to XYZ for editing
+        polygonPointsRef.current = existingPolygon.map(([lng, lat, elevation]) => {
+          const { x, y, z } = lngLatElevationToXYZ(lng, lat, elevation);
+          return { x, y, z: z + 1000 }; // Add visual offset for editing
+        });
+        
+        // Add visual dots for existing points
+        polygonPointsRef.current.forEach(point => {
+          addPolygonDot(point);
+        });
+        
+        console.log(`DEBUG: Initialized editing with ${polygonPointsRef.current.length} existing points`);
+      } else {
+        // Start fresh polygon
+        polygonPointsRef.current = [];
+        console.log('DEBUG: Starting fresh polygon editing');
+      }
       // Keep controls enabled, just check drawing state in handler (like reference)
       
       // Add both mouse and touch event listeners for cross-device support
