@@ -634,9 +634,16 @@ export default function MapComponent({
     // Clear any existing polygon visuals
     clearPolygonVisuals();
 
-    // Apply +1000m visual offset for rendering only (stored data has no offset)
+    // Apply +1000m radial visual offset for rendering only (stored data has no offset)
     const visualPoints = existingPolygon.map(([x, y, z]) => {
-      return { x, y, z: z + 1000 }; // Add 1000m visual offset for rendering only
+      const point = { x, y, z };
+      // Add radial elevation offset along normalized position vector
+      const normalizedPosition = new (ThreeRef.current.Vector3)(x, y, z).normalize();
+      return {
+        x: x + normalizedPosition.x * 1000,
+        y: y + normalizedPosition.y * 1000, 
+        z: z + normalizedPosition.z * 1000
+      };
     });
 
     // Add visual dots for each point
@@ -770,11 +777,15 @@ export default function MapComponent({
 
     // Handle polygon completion FIRST, before ANY other checks
     if (!editingBoundary && isDrawingRef.current && polygonPointsRef.current.length >= 3 && onPolygonComplete) {
-      // Remove visual +1000m offset and return raw XYZ coordinates for storage
+      // Remove visual radial elevation offset and return raw XYZ coordinates for storage
       const coords: [number, number, number][] = polygonPointsRef.current.map((point: any) => {
-        return [point.x, point.y, point.z - 1000]; // Remove visual offset, store raw XYZ
+        const originalPoint = point.clone();
+        // Remove the radial elevation offset by subtracting along the normalized position vector
+        const normalizedPosition = originalPoint.clone().normalize();
+        originalPoint.sub(normalizedPosition.multiplyScalar(1000));
+        return [originalPoint.x, originalPoint.y, originalPoint.z]; // Store raw XYZ without elevation offset
       });
-      console.log('DEBUG: Completing polygon with XYZ coords:', coords);
+      console.log('DEBUG: Completing polygon with XYZ coords (radial offset removed):', coords);
       
       debugLog('polygon_completed', {
         totalPoints: coords.length,
@@ -871,9 +882,12 @@ export default function MapComponent({
           const localPoint = tilesRef.current.group.worldToLocal(worldPoint.clone());
           console.log('DEBUG: Converted to local space:', localPoint);
           
-          // Elevate the point 1000 units above ground to avoid intersection
+          // Elevate the point 1000 units radially outward from earth center
           const elevatedPoint = localPoint.clone();
-          elevatedPoint.z += 1000;
+          // In 3D earth visualization, elevation should be radial (along normalized position vector)
+          const normalizedPosition = localPoint.clone().normalize();
+          elevatedPoint.add(normalizedPosition.multiplyScalar(1000));
+          console.log('DEBUG: Applied radial elevation offset:', elevatedPoint);
           polygonPointsRef.current.push(elevatedPoint);
           console.log('DEBUG: Added point to polygon. Total points:', polygonPointsRef.current.length);
           
