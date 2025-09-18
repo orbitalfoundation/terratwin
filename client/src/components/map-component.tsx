@@ -713,6 +713,13 @@ export default function MapComponent({
         point.x, point.y, point.z
       ]);
       console.log('DEBUG: Completing polygon with XYZ coords:', coords);
+      
+      debugLog('polygon_completed', {
+        totalPoints: coords.length,
+        coordinates: coords,
+        timestamp: Date.now()
+      });
+      
       onPolygonComplete(coords);
       isDrawingRef.current = false;
       clearPolygonVisuals();
@@ -802,6 +809,13 @@ export default function MapComponent({
           polygonPointsRef.current.push(intersectionPoint);
           console.log('DEBUG: Added point to polygon. Total points:', polygonPointsRef.current.length);
           
+          debugLog('polygon_point_added', {
+            pointIndex: polygonPointsRef.current.length - 1,
+            totalPoints: polygonPointsRef.current.length,
+            coordinates: [intersectionPoint.x, intersectionPoint.y, intersectionPoint.z],
+            timestamp: Date.now()
+          });
+          
           // Add visual dot for this point
           addPolygonDot(intersectionPoint);
           updatePolygonVisual();
@@ -825,6 +839,14 @@ export default function MapComponent({
       canvas.style.touchAction = 'none'; // Prevent default touch behaviors
       
       console.log('DEBUG: Added click and touch event listeners');
+      console.log('DEBUG: Started polygon editing');
+      
+      debugLog('polygon_editing_started', {
+        isDrawing: true,
+        initialPointCount: 0,
+        timestamp: Date.now()
+      });
+      
       debugLog('event_listeners_added', {
         canvasElement: canvas.tagName,
         canvasClass: canvas.className,
