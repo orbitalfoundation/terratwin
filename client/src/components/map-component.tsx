@@ -658,14 +658,15 @@ export default function MapComponent({
   // Clear polygon visuals when entering edit mode
   useEffect(() => {
     if (editingBoundary) {
-      // Don't clear here - let the editing effect handle initialization
-      console.log('DEBUG: Entering edit mode');
+      // Explicitly clear visuals when entering edit mode for clean slate
+      clearPolygonVisuals();
+      console.log('DEBUG: Entering edit mode - cleared previous visuals');
     }
   }, [editingBoundary]);
 
   // Helper functions for polygon editing (like in reference implementation)
   const addPolygonDot = (point: any) => {
-    if (!ThreeRef.current || !sceneRef.current) return;
+    if (!ThreeRef.current || !tilesRef.current?.group) return;
     
     const { SphereGeometry, MeshBasicMaterial, Mesh } = ThreeRef.current;
     
@@ -677,8 +678,8 @@ export default function MapComponent({
     // Position the dot at the intersection point
     dot.position.copy(point);
     
-    // Add to scene and track it
-    sceneRef.current.add(dot);
+    // CRITICAL: Add to tiles.group to maintain consistent coordinate frame
+    tilesRef.current.group.add(dot);
     polygonDotsRef.current.push(dot);
     
     console.log('DEBUG: Added visual dot at', point, 'Total dots:', polygonDotsRef.current.length);
@@ -686,7 +687,7 @@ export default function MapComponent({
       position: point,
       sphereRadius: 1000,
       totalDotsInScene: polygonDotsRef.current.length,
-      sceneChildrenCount: sceneRef.current.children.length
+      sceneChildrenCount: tilesRef.current.group.children.length
     });
   };
 
@@ -702,10 +703,10 @@ export default function MapComponent({
       currentPolygonMeshRef.current = null;
     }
     
-    // Clear polygon dots
+    // Clear polygon dots  
     polygonDotsRef.current.forEach(dot => {
-      if (sceneRef.current) {
-        sceneRef.current.remove(dot);
+      if (tilesRef.current?.group) {
+        tilesRef.current.group.remove(dot);
       }
       dot.geometry?.dispose();
       dot.material?.dispose();
@@ -861,13 +862,17 @@ export default function MapComponent({
       });
 
       if (intersects.length > 0) {
-        const intersectionPoint = intersects[0].point.clone();
-        console.log('DEBUG: Intersection point (world):', intersectionPoint);
+        const worldPoint = intersects[0].point.clone();
+        console.log('DEBUG: Intersection point (world):', worldPoint);
         
         // Only add to polygon if we're drawing
         if (isDrawingRef.current) {
+          // CRITICAL: Convert world coordinates to tiles.group local space
+          const localPoint = tilesRef.current.group.worldToLocal(worldPoint.clone());
+          console.log('DEBUG: Converted to local space:', localPoint);
+          
           // Elevate the point 1000 units above ground to avoid intersection
-          const elevatedPoint = intersectionPoint.clone();
+          const elevatedPoint = localPoint.clone();
           elevatedPoint.z += 1000;
           polygonPointsRef.current.push(elevatedPoint);
           console.log('DEBUG: Added point to polygon. Total points:', polygonPointsRef.current.length);
@@ -879,7 +884,7 @@ export default function MapComponent({
             timestamp: Date.now()
           });
           
-          // Add visual dot for this elevated point
+          // Add visual dot for this elevated point (now in correct local space)
           addPolygonDot(elevatedPoint);
           updatePolygonVisual();
         }
