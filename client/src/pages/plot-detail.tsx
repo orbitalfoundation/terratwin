@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Edit } from "lucide-react";
+import { ArrowLeft, Edit, MapPin } from "lucide-react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +14,7 @@ export default function PlotDetail() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isEditingBoundary, setIsEditingBoundary] = useState(false);
 
   const { data: plot, isLoading, error } = useQuery<Plot>({
     queryKey: ["/api/plots", id],
@@ -39,6 +41,39 @@ export default function PlotDetail() {
       });
     },
   });
+
+  const updatePolygonMutation = useMutation({
+    mutationFn: async (polygonOutline: [number, number, number][]) => {
+      await apiRequest("PATCH", `/api/plots/${id}`, { polygonOutline });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/plots", id] });
+      toast({
+        title: "Success",
+        description: "Plot boundary saved successfully",
+      });
+      setIsEditingBoundary(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save plot boundary",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handlePolygonComplete = (points: [number, number, number][]) => {
+    if (points.length < 3) {
+      toast({
+        title: "Invalid Polygon",
+        description: "A polygon must have at least 3 points",
+        variant: "destructive",
+      });
+      return;
+    }
+    updatePolygonMutation.mutate(points);
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -177,6 +212,9 @@ export default function PlotDetail() {
                   longitude={plot.longitude} 
                   height={384}
                   viewMode="globe"
+                  editingBoundary={isEditingBoundary}
+                  onPolygonComplete={handlePolygonComplete}
+                  existingPolygon={(plot.polygonOutline as [number, number, number][]) || []}
                   onError={(error) => {
                     console.error('Map Error:', error);
                   }}
@@ -211,6 +249,18 @@ export default function PlotDetail() {
           >
             <Edit className="w-4 h-4 mr-2" />
             Edit Plot
+          </Button>
+          <Button 
+            onClick={() => setIsEditingBoundary(!isEditingBoundary)}
+            className={`px-6 py-3 ${
+              isEditingBoundary 
+                ? "bg-accent text-accent-foreground hover:bg-accent/90" 
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/90"
+            }`}
+            data-testid="button-edit-boundary"
+          >
+            <MapPin className="w-4 h-4 mr-2" />
+            {isEditingBoundary ? "Finish Boundary" : "Edit Plot Boundary"}
           </Button>
           <Button 
             variant="outline"

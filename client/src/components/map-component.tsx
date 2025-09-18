@@ -23,6 +23,11 @@ interface MapComponentProps {
   // Dashboard specific props
   plots?: Plot[];
   viewMode?: "orbit" | "globe"; // Default to orbit for NASA map compatibility
+  
+  // Polygon editing props
+  editingBoundary?: boolean;
+  onPolygonComplete?: (points: [number, number, number][]) => void;
+  existingPolygon?: [number, number, number][];
 }
 
 export default function MapComponent({ 
@@ -35,6 +40,9 @@ export default function MapComponent({
   boundaryPoints = [],
   plots = [],
   viewMode = "orbit",
+  editingBoundary = false,
+  onPolygonComplete,
+  existingPolygon = [],
   onError
 }: MapComponentProps) {
   const { data: cesiumData } = useQuery<{cesiumKey: string | null}>({
@@ -56,6 +64,10 @@ export default function MapComponent({
   const boundaryPointsForShaderRef = useRef<any[]>([]);
   const [engineReady, setEngineReady] = useState(false);
   const ThreeRef = useRef<any>(null);
+  
+  // Polygon editing state
+  const [currentPolygonPoints, setCurrentPolygonPoints] = useState<[number, number, number][]>([]);
+  const currentPolygonMeshRef = useRef<any>(null);
 
   // Constants - adjusted based on view mode
   const CAMERA_NEAR_CLIP = viewMode === "globe" ? 1 : 200;
@@ -474,7 +486,9 @@ export default function MapComponent({
       
       // Clear existing plot spheres
       plotSpheresRef.current.forEach(sphere => {
-        tilesRef.current.group.remove(sphere); // Remove from tiles group where they were added
+        if (tilesRef.current?.group) {
+          tilesRef.current.group.remove(sphere); // Remove from tiles group where they were added
+        }
         sphere.geometry.dispose();
         sphere.material.dispose();
       });
@@ -521,8 +535,10 @@ export default function MapComponent({
         sphere.layers.set(PLOTS_LAYER);
         sphere.userData = { plot };
         
-        tilesRef.current.group.add(sphere); // Add to tiles group for proper coordinate frame
-        plotSpheresRef.current.push(sphere);
+        if (tilesRef.current?.group) {
+          tilesRef.current.group.add(sphere); // Add to tiles group for proper coordinate frame
+          plotSpheresRef.current.push(sphere);
+        }
       });
     };
 
@@ -582,6 +598,141 @@ export default function MapComponent({
     return () => window.removeEventListener('resize', handleResize);
   }, [engineReady]);
 
+  // Handle polygon editing clicks
+  useEffect(() => {
+    if (!engineReady || !rendererRef.current || !cameraRef.current || !editingBoundary) return;
+
+    const handleClick = (event: MouseEvent) => {
+      if (!rendererRef.current || !cameraRef.current) return;
+
+      const rect = rendererRef.current.domElement.getBoundingClientRect();
+      const mouse = {
+        x: ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        y: -((event.clientY - rect.top) / rect.height) * 2 + 1
+      };
+
+      // Create a raycaster to find intersection with Earth surface
+      const { Raycaster, Vector3 } = ThreeRef.current;
+      const raycaster = new Raycaster();
+      raycaster.setFromCamera(mouse, cameraRef.current);
+
+      // Intersect with Earth surface (sphere at origin with Earth radius)
+      const { Sphere } = ThreeRef.current;
+      const earthCenter = new Vector3(0, 0, 0);
+      const earthSphere = new Sphere(earthCenter, EARTH_RADIUS);
+      const intersections = raycaster.ray.intersectSphere(earthSphere, new Vector3());
+
+      if (intersections) {
+        // Convert ECEF coordinates back to lat/lon/elevation
+        // Using proper coordinate mapping: lon = atan2(z, x), lat = asin(y/R)
+        const { x, y, z } = intersections;
+        const longitude = Math.atan2(z, x) * 180 / Math.PI;
+        const latitude = Math.asin(y / EARTH_RADIUS) * 180 / Math.PI;
+        const elevation = 0; // Default elevation at sea level
+
+        // Add point to current polygon
+        setCurrentPolygonPoints(prev => [...prev, [longitude, latitude, elevation]]);
+      }
+    };
+
+    const canvas = rendererRef.current.domElement;
+    canvas.addEventListener('click', handleClick);
+    canvas.style.cursor = 'crosshair';
+    
+    // Disable orbit controls during polygon editing to prevent accidental camera movement
+    if (controlsRef.current) {
+      controlsRef.current.enabled = false;
+    }
+
+    return () => {
+      canvas.removeEventListener('click', handleClick);
+      canvas.style.cursor = 'default';
+      
+      // Re-enable orbit controls when exiting polygon editing
+      if (controlsRef.current) {
+        controlsRef.current.enabled = true;
+      }
+    };
+  }, [editingBoundary, engineReady]);
+
+  // Initialize polygon from existing data when entering edit mode
+  useEffect(() => {
+    if (editingBoundary && existingPolygon.length > 0) {
+      setCurrentPolygonPoints(existingPolygon);
+    } else if (!editingBoundary) {
+      // Only reset if we have a callback to save, otherwise preserve points
+      // Use a ref to get current polygon points to avoid dependency issues
+      setCurrentPolygonPoints(currentPoints => {
+        if (onPolygonComplete && currentPoints.length >= 3) {
+          onPolygonComplete(currentPoints);
+        }
+        return [];
+      });
+    }
+  }, [editingBoundary, existingPolygon, onPolygonComplete]);
+
+  // Render current polygon being edited
+  useEffect(() => {
+    if (!engineReady || !sceneRef.current || !ThreeRef.current) return;
+
+    // Clean up existing polygon mesh
+    if (currentPolygonMeshRef.current) {
+      if (tilesRef.current?.group) {
+        tilesRef.current.group.remove(currentPolygonMeshRef.current);
+      }
+      currentPolygonMeshRef.current.geometry?.dispose();
+      currentPolygonMeshRef.current.material?.dispose();
+      currentPolygonMeshRef.current = null;
+    }
+
+    // Only create mesh if we have at least 3 points for a valid polygon
+    if (currentPolygonPoints.length >= 3) {
+      const { Vector3, MeshBasicMaterial, Mesh, BufferGeometry, Float32BufferAttribute } = ThreeRef.current;
+      
+      // Convert lat/lon points to ECEF coordinates
+      const vertices: number[] = [];
+      currentPolygonPoints.forEach(([longitude, latitude, elevation]) => {
+        const lat = latitude * Math.PI / 180;
+        const lon = longitude * Math.PI / 180;
+        const radius = EARTH_RADIUS * 1.005; // Slightly above Earth surface
+        
+        vertices.push(
+          radius * Math.cos(lat) * Math.cos(lon), // x
+          radius * Math.cos(lat) * Math.sin(lon), // y
+          radius * Math.sin(lat)                  // z
+        );
+      });
+
+      // Create triangulated faces for the polygon (fan triangulation from first vertex)
+      const indices: number[] = [];
+      for (let i = 1; i < currentPolygonPoints.length - 1; i++) {
+        indices.push(0, i, i + 1);
+      }
+
+      // Create BufferGeometry
+      const geometry = new BufferGeometry();
+      geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
+      geometry.setIndex(indices);
+      geometry.computeVertexNormals();
+
+      // Create semi-transparent green material
+      const material = new MeshBasicMaterial({
+        color: 0x00ff00,
+        opacity: 0.3,
+        transparent: true,
+        side: ThreeRef.current.DoubleSide
+      });
+
+      // Create mesh and add to scene
+      const mesh = new Mesh(geometry, material);
+      mesh.layers.set(BOUNDARY_LAYER);
+      if (tilesRef.current?.group) {
+        tilesRef.current.group.add(mesh);
+        currentPolygonMeshRef.current = mesh;
+      }
+    }
+  }, [currentPolygonPoints, engineReady]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -618,6 +769,13 @@ export default function MapComponent({
         sceneRef.current.remove(boundaryMeshRef.current);
         boundaryMeshRef.current.geometry?.dispose();
         boundaryMeshRef.current.material?.dispose();
+      }
+
+      // Clean up current polygon mesh
+      if (currentPolygonMeshRef.current && tilesRef.current?.group) {
+        tilesRef.current.group.remove(currentPolygonMeshRef.current);
+        currentPolygonMeshRef.current.geometry?.dispose();
+        currentPolygonMeshRef.current.material?.dispose();
       }
 
       // Clean up renderer
