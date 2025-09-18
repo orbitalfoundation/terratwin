@@ -634,12 +634,14 @@ export default function MapComponent({
     // Clear any existing polygon visuals
     clearPolygonVisuals();
 
-    // Apply simple +1000 elevation offset for rendering (stored data has no offset)
+    // Calculate elevated positions: real_point + normalize(real_point) * 1000
     const visualPoints = existingPolygon.map(([x, y, z]) => {
+      const realPoint = new (ThreeRef.current.Vector3)(x, y, z);
+      const elevatedPoint = realPoint.clone().add(realPoint.clone().normalize().multiplyScalar(1000));
       return {
-        x: x,
-        y: y,
-        z: z + 1000 // Simple elevation offset for visual separation
+        x: elevatedPoint.x,
+        y: elevatedPoint.y,
+        z: elevatedPoint.z
       };
     });
 
@@ -672,15 +674,17 @@ export default function MapComponent({
   const addPolygonDot = (point: any) => {
     if (!ThreeRef.current || !tilesRef.current?.group) return;
     
-    const { SphereGeometry, MeshBasicMaterial, Mesh } = ThreeRef.current;
+    const { SphereGeometry, MeshBasicMaterial, Mesh, Vector3 } = ThreeRef.current;
     
     // Create small red sphere to mark the point
     const geometry = new SphereGeometry(1000, 8, 8); // 1km radius sphere
     const material = new MeshBasicMaterial({ color: 0xff0000 }); // Red color
     const dot = new Mesh(geometry, material);
     
-    // Position the dot at the intersection point
-    dot.position.copy(point);
+    // Calculate elevated position: real_point + normalize(real_point) * 1000
+    const realPoint = new Vector3(point.x, point.y, point.z);
+    const elevatedPoint = realPoint.clone().add(realPoint.clone().normalize().multiplyScalar(1000));
+    dot.position.copy(elevatedPoint);
     
     // CRITICAL: Add to tiles.group to maintain consistent coordinate frame
     tilesRef.current.group.add(dot);
@@ -735,10 +739,12 @@ export default function MapComponent({
     
     const { Vector3, MeshBasicMaterial, Mesh, BufferGeometry, Float32BufferAttribute } = ThreeRef.current;
     
-    // Convert the ECEF points to vertices for rendering
+    // Convert points to elevated vertices for rendering: real_point + normalize(real_point) * 1000
     const vertices: number[] = [];
     polygonPointsRef.current.forEach((point: any) => {
-      vertices.push(point.x, point.y, point.z);
+      const realPoint = new (ThreeRef.current.Vector3)(point.x, point.y, point.z);
+      const elevatedPoint = realPoint.clone().add(realPoint.clone().normalize().multiplyScalar(1000));
+      vertices.push(elevatedPoint.x, elevatedPoint.y, elevatedPoint.z);
     });
 
     // Create triangulated faces for the polygon (fan triangulation from first vertex)
@@ -782,12 +788,11 @@ export default function MapComponent({
 
     // Handle polygon completion FIRST, before ANY other checks
     if (!editingBoundary && isDrawingRef.current && polygonPointsRef.current.length >= 3 && onPolygonComplete) {
-      // Remove simple elevation offset and return XYZ coordinates for storage
+      // Return the raw surface intersection points for storage (no modification)
       const coords: [number, number, number][] = polygonPointsRef.current.map((point: any) => {
-        // Simple removal of elevation offset
-        return [point.x, point.y, point.z - 1000]; // Store XYZ with elevation offset removed
+        return [point.x, point.y, point.z]; // Store the raw intersection points
       });
-      console.log('DEBUG: Completing polygon with XYZ coords (elevation removed):', coords);
+      console.log('DEBUG: Completing polygon with raw intersection coords:', coords);
       
       debugLog('polygon_completed', {
         totalPoints: coords.length,
@@ -884,23 +889,20 @@ export default function MapComponent({
           const localPoint = tilesRef.current.group.worldToLocal(worldPoint.clone());
           console.log('DEBUG: Converted to local space:', localPoint);
           
-          // Simple elevation offset - just store the intersected XYZ coordinates
-          const elevatedPoint = localPoint.clone();
-          // Add simple elevation for visual separation (can adjust this value as needed)
-          elevatedPoint.z += 1000;
-          console.log('DEBUG: Applied simple elevation offset:', elevatedPoint);
-          polygonPointsRef.current.push(elevatedPoint);
+          // Store the raw intersection point (no modification)
+          polygonPointsRef.current.push(localPoint);
+          console.log('DEBUG: Added raw surface intersection point:', localPoint);
           console.log('DEBUG: Added point to polygon. Total points:', polygonPointsRef.current.length);
           
           debugLog('polygon_point_added', {
             pointIndex: polygonPointsRef.current.length - 1,
             totalPoints: polygonPointsRef.current.length,
-            coordinates: [elevatedPoint.x, elevatedPoint.y, elevatedPoint.z],
+            coordinates: [localPoint.x, localPoint.y, localPoint.z],
             timestamp: Date.now()
           });
           
-          // Add visual dot for this elevated point (now in correct local space)
-          addPolygonDot(elevatedPoint);
+          // Add visual dot for this point (addPolygonDot will calculate elevation internally)
+          addPolygonDot(localPoint);
           updatePolygonVisual();
         }
       } else {
