@@ -63,6 +63,18 @@ export default function PlotDetail() {
     },
   });
 
+  // Convert XYZ 3D coordinates to longitude/latitude/elevation format
+  const convertXYZToLatLngElevation = (points: [number, number, number][]) => {
+    return points.map(([x, y, z]) => {
+      // Convert 3D world coordinates to longitude/latitude
+      const latitude = Math.asin(Math.min(1, Math.max(-1, y / Math.sqrt(x * x + y * y + z * z)))) * (180 / Math.PI);
+      const longitude = Math.atan2(x, z) * (180 / Math.PI);
+      // Remove the +1000 elevation we added and convert to reasonable elevation
+      const elevation = Math.max(0, Math.sqrt(x * x + y * y + z * z) - 6371000); // Earth radius in meters
+      return [longitude, latitude, elevation] as [number, number, number];
+    });
+  };
+
   const handlePolygonComplete = (points: [number, number, number][]) => {
     if (points.length < 3) {
       toast({
@@ -72,7 +84,9 @@ export default function PlotDetail() {
       });
       return;
     }
-    updatePolygonMutation.mutate(points);
+    // Convert XYZ coordinates to lng/lat/elevation before saving
+    const convertedPoints = convertXYZToLatLngElevation(points);
+    updatePolygonMutation.mutate(convertedPoints);
   };
 
   const formatDate = (dateString: string) => {

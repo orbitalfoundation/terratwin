@@ -828,19 +828,21 @@ export default function MapComponent({
         
         // Only add to polygon if we're drawing
         if (isDrawingRef.current) {
-          // Use the world space point directly for XYZ coordinates
-          polygonPointsRef.current.push(intersectionPoint);
+          // Elevate the point 1000 units above ground to avoid intersection
+          const elevatedPoint = intersectionPoint.clone();
+          elevatedPoint.z += 1000;
+          polygonPointsRef.current.push(elevatedPoint);
           console.log('DEBUG: Added point to polygon. Total points:', polygonPointsRef.current.length);
           
           debugLog('polygon_point_added', {
             pointIndex: polygonPointsRef.current.length - 1,
             totalPoints: polygonPointsRef.current.length,
-            coordinates: [intersectionPoint.x, intersectionPoint.y, intersectionPoint.z],
+            coordinates: [elevatedPoint.x, elevatedPoint.y, elevatedPoint.z],
             timestamp: Date.now()
           });
           
-          // Add visual dot for this point
-          addPolygonDot(intersectionPoint);
+          // Add visual dot for this elevated point
+          addPolygonDot(elevatedPoint);
           updatePolygonVisual();
         }
       } else {
