@@ -830,18 +830,11 @@ export default function MapComponent({
       isDrawingRef.current = true;
       polygonPointsRef.current = [];
       clearPolygonVisuals();
-      controls.enabled = false; // Disable camera controls while drawing
+      // Keep controls enabled, just check drawing state in handler (like reference)
       
-      // Add both mouse and touch event listeners for cross-device support  
-      const testEventHandler = (e: Event) => {
-        console.log('🔴 TEST: Raw DOM event detected!', e.type);
-        debugLog('raw_dom_event', { type: e.type, target: e.target?.constructor?.name });
-      };
-      
-      canvas.addEventListener('click', handleInteraction);
-      canvas.addEventListener('touchend', handleInteraction);
-      canvas.addEventListener('mousedown', testEventHandler);  // Test any mouse interaction
-      canvas.addEventListener('touchstart', testEventHandler); // Test any touch interaction
+      // Add both mouse and touch event listeners for cross-device support
+      canvas.addEventListener('mousedown', handleInteraction);
+      canvas.addEventListener('touchstart', handleInteraction);
       canvas.style.cursor = 'crosshair';
       canvas.style.touchAction = 'none'; // Prevent default touch behaviors
       
@@ -864,14 +857,12 @@ export default function MapComponent({
 
     return () => {
       if (canvas) {
-        canvas.removeEventListener('click', handleInteraction);
-        canvas.removeEventListener('touchend', handleInteraction);
+        canvas.removeEventListener('mousedown', handleInteraction);
+        canvas.removeEventListener('touchstart', handleInteraction);
         canvas.style.cursor = 'default';
         canvas.style.touchAction = '';
       }
-      if (controls) {
-        controls.enabled = true;
-      }
+      // Controls stay enabled throughout (like reference)
     };
   }, [editingBoundary, engineReady, onPolygonComplete]);
 
