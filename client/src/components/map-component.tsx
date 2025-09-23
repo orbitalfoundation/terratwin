@@ -456,6 +456,7 @@ export default function MapComponent({
               }
 
               // Create custom shader material
+              const { DoubleSide } = ThreeRef.current;
               const customMaterial = new ShaderMaterial({
                 uniforms: {
                   boundaryPoints: { value: uniformsArray },
@@ -601,7 +602,9 @@ export default function MapComponent({
         // Set camera position instantly
         camera.position.set(x, y, z);
         // Set orbit controls target to earth center
-        controls.target.set(0, 0, 0);
+        if (controls.target) {
+          controls.target.set(0, 0, 0);
+        }
       } else {
         // For orbit mode, use local coordinate system
         const SCENE_UNITS_PER_METER = 0.01;
@@ -619,7 +622,9 @@ export default function MapComponent({
         // Set camera position instantly
         camera.position.set(x, y, z);
         // Set orbit controls target to surface point
-        controls.target.set(x, 0, z);
+        if (controls.target) {
+          controls.target.set(x, 0, z);
+        }
       }
       
       // Update controls
