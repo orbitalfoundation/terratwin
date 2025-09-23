@@ -584,14 +584,15 @@ export default function MapComponent({
     if (focusLatitude === undefined || focusLongitude === undefined) return;
 
     // Helper function to convert lat/lng to 3D coordinates for globe view
+    // Uses EXACT same coordinate system as plot markers
     const latLngToCartesian = (lat: number, lng: number, radius: number) => {
       const latRad = lat * Math.PI / 180;
       const lngRad = lng * Math.PI / 180;
       
       return {
         x: radius * Math.cos(latRad) * Math.cos(lngRad),
-        y: radius * Math.sin(latRad), 
-        z: radius * Math.cos(latRad) * Math.sin(lngRad)
+        y: radius * Math.cos(latRad) * Math.sin(lngRad), // Same as plot markers
+        z: radius * Math.sin(latRad)                      // Same as plot markers
       };
     };
 
@@ -658,8 +659,34 @@ export default function MapComponent({
       
       const easedProgress = easeInOutCubic(progress);
       
-      // Interpolate position
-      camera.position.lerpVectors(startPosition, endPosition, easedProgress);
+      // For globe mode, use spherical interpolation to stay above surface
+      if (viewMode === "globe") {
+        // Convert start position to lat/lng/radius
+        const startRadius = Math.sqrt(startPosition.x ** 2 + startPosition.y ** 2 + startPosition.z ** 2);
+        const startLat = Math.asin(startPosition.z / startRadius);
+        const startLng = Math.atan2(startPosition.y, startPosition.x);
+        
+        // Target lat/lng
+        const targetLat = focusLatitude * Math.PI / 180;
+        const targetLng = focusLongitude * Math.PI / 180;
+        const targetRadius = EARTH_RADIUS + FOCUS_HEIGHT;
+        
+        // Interpolate angles and radius
+        const currentLat = startLat + (targetLat - startLat) * easedProgress;
+        const currentLng = startLng + (targetLng - startLng) * easedProgress;
+        const currentRadius = startRadius + (targetRadius - startRadius) * easedProgress;
+        
+        // Convert back to cartesian using same coordinate system as plot markers
+        const newPos = latLngToCartesian(
+          currentLat * 180 / Math.PI, 
+          currentLng * 180 / Math.PI, 
+          currentRadius
+        );
+        camera.position.set(newPos.x, newPos.y, newPos.z);
+      } else {
+        // For orbit mode, use linear interpolation (no planet center issue)
+        camera.position.lerpVectors(startPosition, endPosition, easedProgress);
+      }
       
       // Update controls target to focus point and look at target
       if (controls && controls.target) {
