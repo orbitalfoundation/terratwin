@@ -23,6 +23,11 @@ interface MapComponentProps {
   // Dashboard specific props
   plots?: Plot[];
   viewMode?: "orbit" | "globe"; // Default to orbit for NASA map compatibility
+  
+  // Camera focus props
+  focusLatitude?: number;
+  focusLongitude?: number;
+  focusTrigger?: number; // Increment this to trigger a focus animation
 }
 
 // Debug logging utility
@@ -48,6 +53,9 @@ export default function MapComponent({
   boundaryPoints = [],
   plots = [],
   viewMode = "orbit",
+  focusLatitude,
+  focusLongitude,
+  focusTrigger = 0,
   onError
 }: MapComponentProps) {
   const { data: cesiumData } = useQuery<{cesiumKey: string | null}>({
@@ -67,6 +75,7 @@ export default function MapComponent({
   const onLoadModelRef = useRef<any>(null);
   const onDisposeModelRef = useRef<any>(null);
   const boundaryPointsForShaderRef = useRef<any[]>([]);
+  const focusAnimationIdRef = useRef<number>();
   const [engineReady, setEngineReady] = useState(false);
   const ThreeRef = useRef<any>(null);
   
@@ -558,6 +567,91 @@ export default function MapComponent({
 
     updatePlots();
   }, [plots, engineReady, viewMode, latitude, longitude]);
+
+  // Camera focus functionality
+  useEffect(() => {
+    if (!engineReady || !cameraRef.current || focusTrigger === 0) return;
+    if (focusLatitude === undefined || focusLongitude === undefined) return;
+
+    // Helper function to convert lat/lng to 3D coordinates for globe view
+    const latLngToCartesian = (lat: number, lng: number, radius: number) => {
+      const latRad = lat * Math.PI / 180;
+      const lngRad = lng * Math.PI / 180;
+      
+      return {
+        x: radius * Math.cos(latRad) * Math.cos(lngRad),
+        y: radius * Math.sin(latRad), 
+        z: radius * Math.cos(latRad) * Math.sin(lngRad)
+      };
+    };
+
+    // Calculate target position 100,000 meters above the surface
+    const FOCUS_HEIGHT = 100000; // 100km above surface
+    let targetPosition;
+
+    if (viewMode === "globe") {
+      const surfaceRadius = EARTH_RADIUS;
+      const focusRadius = surfaceRadius + FOCUS_HEIGHT;
+      targetPosition = latLngToCartesian(focusLatitude, focusLongitude, focusRadius);
+    } else {
+      // For orbit view, position relative to the local center
+      targetPosition = {
+        x: (focusLongitude - longitude) * 100,
+        y: FOCUS_HEIGHT / 50, // Scale down for orbit view  
+        z: (focusLatitude - latitude) * 100
+      };
+    }
+
+    // Animate camera to target position
+    const camera = cameraRef.current;
+    const startPosition = camera.position.clone();
+    const endPosition = new (ThreeRef.current?.Vector3 || Object)();
+    endPosition.set(targetPosition.x, targetPosition.y, targetPosition.z);
+
+    // Animation parameters
+    let startTime = Date.now();
+    const duration = 2000; // 2 seconds animation
+
+    const animateFocus = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Smooth easing function
+      const easeInOutCubic = (t: number) => {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      };
+      
+      const easedProgress = easeInOutCubic(progress);
+      
+      // Interpolate position
+      camera.position.lerpVectors(startPosition, endPosition, easedProgress);
+      
+      // Look at the center (for globe view) or target area (for orbit view)
+      if (viewMode === "globe") {
+        camera.lookAt(0, 0, 0);
+      } else {
+        const targetSurface = latLngToCartesian(focusLatitude, focusLongitude, EARTH_RADIUS);
+        camera.lookAt(targetSurface.x, targetSurface.y, targetSurface.z);
+      }
+
+      if (progress < 1) {
+        focusAnimationIdRef.current = requestAnimationFrame(animateFocus);
+      }
+    };
+
+    // Cancel any existing focus animation
+    if (focusAnimationIdRef.current) {
+      cancelAnimationFrame(focusAnimationIdRef.current);
+    }
+
+    animateFocus();
+
+    return () => {
+      if (focusAnimationIdRef.current) {
+        cancelAnimationFrame(focusAnimationIdRef.current);
+      }
+    };
+  }, [focusTrigger, focusLatitude, focusLongitude, engineReady, viewMode, latitude, longitude]);
 
   // Animation loop
   useEffect(() => {

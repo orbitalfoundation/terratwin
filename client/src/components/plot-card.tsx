@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Trash2 } from "lucide-react";
+import { Trash2, MapPin } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -8,9 +8,10 @@ import type { Plot } from "@shared/schema";
 
 interface PlotCardProps {
   plot: Plot;
+  onFocusOnMap?: () => void;
 }
 
-export default function PlotCard({ plot }: PlotCardProps) {
+export default function PlotCard({ plot, onFocusOnMap }: PlotCardProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -38,6 +39,14 @@ export default function PlotCard({ plot }: PlotCardProps) {
     e.preventDefault(); // Prevent navigation to plot detail
     e.stopPropagation();
     deletePlotMutation.mutate();
+  };
+
+  const handleFocusOnMap = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent navigation to plot detail
+    e.stopPropagation();
+    if (onFocusOnMap) {
+      onFocusOnMap();
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -96,6 +105,17 @@ export default function PlotCard({ plot }: PlotCardProps) {
                 {formatDate(plot.updatedAt)}
               </div>
             </div>
+            {onFocusOnMap && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleFocusOnMap}
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:text-primary-foreground hover:bg-primary"
+                data-testid={`button-focus-map-${plot.id}`}
+              >
+                <MapPin className="w-4 h-4" />
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

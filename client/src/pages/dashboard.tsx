@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Plus, Trash2 } from "lucide-react";
@@ -13,9 +14,25 @@ export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Focus state for map camera
+  const [focusCoordinates, setFocusCoordinates] = useState<{
+    latitude: number;
+    longitude: number;
+    trigger: number;
+  } | null>(null);
+  
   const { data: plots, isLoading } = useQuery<Plot[]>({
     queryKey: ["/api/plots"],
   });
+
+  // Function to handle focus on a plot
+  const handleFocusOnPlot = (plot: Plot) => {
+    setFocusCoordinates({
+      latitude: plot.latitude,
+      longitude: plot.longitude,
+      trigger: Date.now() // Use timestamp to trigger animation
+    });
+  };
 
 
   const totalPlots = plots?.length || 0;
@@ -105,6 +122,9 @@ export default function Dashboard() {
               viewMode="globe"
               plots={plots || []} 
               height={400}
+              focusLatitude={focusCoordinates?.latitude}
+              focusLongitude={focusCoordinates?.longitude}
+              focusTrigger={focusCoordinates?.trigger || 0}
               data-testid="dashboard-map-component"
             />
           </div>
@@ -120,7 +140,11 @@ export default function Dashboard() {
           <div className="divide-y divide-border">
             {plots && plots.length > 0 ? (
               plots.map((plot) => (
-                <PlotCard key={plot.id} plot={plot} />
+                <PlotCard 
+                  key={plot.id} 
+                  plot={plot} 
+                  onFocusOnMap={() => handleFocusOnPlot(plot)}
+                />
               ))
             ) : (
               <div className="px-6 py-12 text-center">
