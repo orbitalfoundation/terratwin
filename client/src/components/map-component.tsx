@@ -578,144 +578,57 @@ export default function MapComponent({
     updatePlots();
   }, [plots, engineReady, viewMode, latitude, longitude]);
 
-  // Camera focus functionality
+  // Camera focus functionality - instant positioning
   useEffect(() => {
-    if (!engineReady || !cameraRef.current || focusTrigger === 0) return;
+    if (!engineReady || !cameraRef.current || !controlsRef.current || focusTrigger === 0) return;
     if (focusLatitude === undefined || focusLongitude === undefined) return;
 
-    // Helper function to convert lat/lng to 3D coordinates for globe view
-    // Uses EXACT same coordinate system as plot markers
-    const latLngToCartesian = (lat: number, lng: number, radius: number) => {
-      const latRad = lat * Math.PI / 180;
-      const lngRad = lng * Math.PI / 180;
+    // Simple function to convert lat/lng to unit vector and multiply by radius
+    const setCameraPosition = (lat: number, lng: number, elevation: number) => {
+      const camera = cameraRef.current!;
+      const controls = controlsRef.current!;
       
-      return {
-        x: radius * Math.cos(latRad) * Math.cos(lngRad),
-        y: radius * Math.cos(latRad) * Math.sin(lngRad), // Same as plot markers
-        z: radius * Math.sin(latRad)                      // Same as plot markers
-      };
-    };
-
-    // Calculate target position 100,000 meters above the surface
-    const FOCUS_HEIGHT = 100000; // 100km above surface
-    let targetPosition;
-    let targetLookAt;
-
-    if (viewMode === "globe") {
-      const surfaceRadius = EARTH_RADIUS;
-      const focusRadius = surfaceRadius + FOCUS_HEIGHT;
-      targetPosition = latLngToCartesian(focusLatitude, focusLongitude, focusRadius);
-      targetLookAt = { x: 0, y: 0, z: 0 }; // Look at center for globe
-    } else {
-      // For orbit view, use proper meter-based calculations
-      const SCENE_UNITS_PER_METER = 0.01; // Scale down for orbit view (1 meter = 0.01 scene units)
-      
-      // Calculate meters per degree at current latitude
-      const METERS_PER_DEGREE_LAT = 111320; // Approximately constant
-      const latRad = latitude * Math.PI / 180;
-      const METERS_PER_DEGREE_LON = 111320 * Math.cos(latRad);
-      
-      // Convert coordinate deltas to meters, then to scene units
-      const deltaLonMeters = (focusLongitude - longitude) * METERS_PER_DEGREE_LON;
-      const deltaLatMeters = (focusLatitude - latitude) * METERS_PER_DEGREE_LAT;
-      
-      const localX = deltaLonMeters * SCENE_UNITS_PER_METER;
-      const localZ = deltaLatMeters * SCENE_UNITS_PER_METER;
-      const localY = FOCUS_HEIGHT * SCENE_UNITS_PER_METER; // Proper 100km altitude
-      
-      targetPosition = { x: localX, y: localY, z: localZ };
-      // Look at the surface point in the same coordinate frame
-      targetLookAt = { x: localX, y: 0, z: localZ };
-    }
-
-    // Animate camera to target position
-    const camera = cameraRef.current;
-    const controls = controlsRef.current;
-    const startPosition = camera.position.clone();
-    const endPosition = new (ThreeRef.current?.Vector3 || Object)();
-    endPosition.set(targetPosition.x, targetPosition.y, targetPosition.z);
-
-    // Store original controls state and target
-    const originalTarget = controls?.target?.clone() || null;
-    const originalEnabled = controls?.enabled || false;
-    
-    // Disable controls during animation to prevent conflicts
-    if (controls) {
-      controls.enabled = false;
-    }
-
-    // Animation parameters
-    let startTime = Date.now();
-    const duration = 2000; // 2 seconds animation
-
-    const animateFocus = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Smooth easing function
-      const easeInOutCubic = (t: number) => {
-        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      };
-      
-      const easedProgress = easeInOutCubic(progress);
-      
-      // For globe mode, use spherical interpolation to stay above surface
       if (viewMode === "globe") {
-        // Convert start position to lat/lng/radius
-        const startRadius = Math.sqrt(startPosition.x ** 2 + startPosition.y ** 2 + startPosition.z ** 2);
-        const startLat = Math.asin(startPosition.z / startRadius);
-        const startLng = Math.atan2(startPosition.y, startPosition.x);
+        // Convert lat/lng to unit vector, multiply by earth radius + elevation
+        const latRad = lat * Math.PI / 180;
+        const lngRad = lng * Math.PI / 180;
+        const radius = EARTH_RADIUS + elevation;
         
-        // Target lat/lng
-        const targetLat = focusLatitude * Math.PI / 180;
-        const targetLng = focusLongitude * Math.PI / 180;
-        const targetRadius = EARTH_RADIUS + FOCUS_HEIGHT;
+        const x = radius * Math.cos(latRad) * Math.cos(lngRad);
+        const y = radius * Math.cos(latRad) * Math.sin(lngRad);
+        const z = radius * Math.sin(latRad);
         
-        // Interpolate angles and radius
-        const currentLat = startLat + (targetLat - startLat) * easedProgress;
-        const currentLng = startLng + (targetLng - startLng) * easedProgress;
-        const currentRadius = startRadius + (targetRadius - startRadius) * easedProgress;
-        
-        // Convert back to cartesian using same coordinate system as plot markers
-        const newPos = latLngToCartesian(
-          currentLat * 180 / Math.PI, 
-          currentLng * 180 / Math.PI, 
-          currentRadius
-        );
-        camera.position.set(newPos.x, newPos.y, newPos.z);
+        // Set camera position instantly
+        camera.position.set(x, y, z);
+        // Set orbit controls target to earth center
+        controls.target.set(0, 0, 0);
       } else {
-        // For orbit mode, use linear interpolation (no planet center issue)
-        camera.position.lerpVectors(startPosition, endPosition, easedProgress);
+        // For orbit mode, use local coordinate system
+        const SCENE_UNITS_PER_METER = 0.01;
+        const METERS_PER_DEGREE_LAT = 111320;
+        const latRad = latitude * Math.PI / 180;
+        const METERS_PER_DEGREE_LON = 111320 * Math.cos(latRad);
+        
+        const deltaLonMeters = (lng - longitude) * METERS_PER_DEGREE_LON;
+        const deltaLatMeters = (lat - latitude) * METERS_PER_DEGREE_LAT;
+        
+        const x = deltaLonMeters * SCENE_UNITS_PER_METER;
+        const z = deltaLatMeters * SCENE_UNITS_PER_METER;
+        const y = elevation * SCENE_UNITS_PER_METER;
+        
+        // Set camera position instantly
+        camera.position.set(x, y, z);
+        // Set orbit controls target to surface point
+        controls.target.set(x, 0, z);
       }
       
-      // Update controls target to focus point and look at target
-      if (controls && controls.target) {
-        controls.target.set(targetLookAt.x, targetLookAt.y, targetLookAt.z);
-      }
-      camera.lookAt(targetLookAt.x, targetLookAt.y, targetLookAt.z);
-
-      if (progress < 1) {
-        focusAnimationIdRef.current = requestAnimationFrame(animateFocus);
-      } else {
-        // Re-enable controls after animation completes
-        if (controls) {
-          controls.enabled = originalEnabled;
-        }
-      }
+      // Update controls
+      controls.update();
     };
 
-    // Cancel any existing focus animation
-    if (focusAnimationIdRef.current) {
-      cancelAnimationFrame(focusAnimationIdRef.current);
-    }
-
-    animateFocus();
-
-    return () => {
-      if (focusAnimationIdRef.current) {
-        cancelAnimationFrame(focusAnimationIdRef.current);
-      }
-    };
+    // Set camera to focus position with 100km elevation
+    setCameraPosition(focusLatitude, focusLongitude, 100000);
+    
   }, [focusTrigger, focusLatitude, focusLongitude, engineReady, viewMode, latitude, longitude]);
 
   // Animation loop
