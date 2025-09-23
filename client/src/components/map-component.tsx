@@ -546,13 +546,23 @@ export default function MapComponent({
             radius * Math.sin(lat)
           );
         } else {
-          // For orbit view, use local coordinates around the center
-          const offsetDistance = 2000;
-          sphere.position.set(
-            (plot.longitude - longitude) * 100,
-            offsetDistance,
-            (plot.latitude - latitude) * 100
-          );
+          // For orbit view, use the same meter-based calculations as focus system
+          const SCENE_UNITS_PER_METER = 0.01; // Same scale as focus system
+          
+          // Calculate meters per degree at current latitude
+          const METERS_PER_DEGREE_LAT = 111320; // Approximately constant
+          const latRad = latitude * Math.PI / 180;
+          const METERS_PER_DEGREE_LON = 111320 * Math.cos(latRad);
+          
+          // Convert coordinate deltas to meters, then to scene units
+          const deltaLonMeters = (plot.longitude - longitude) * METERS_PER_DEGREE_LON;
+          const deltaLatMeters = (plot.latitude - latitude) * METERS_PER_DEGREE_LAT;
+          
+          const plotX = deltaLonMeters * SCENE_UNITS_PER_METER;
+          const plotZ = deltaLatMeters * SCENE_UNITS_PER_METER;
+          const plotY = 10 * SCENE_UNITS_PER_METER; // Small height above surface (10 meters)
+          
+          sphere.position.set(plotX, plotY, plotZ);
         }
         
         sphere.layers.set(PLOTS_LAYER);
@@ -588,25 +598,50 @@ export default function MapComponent({
     // Calculate target position 100,000 meters above the surface
     const FOCUS_HEIGHT = 100000; // 100km above surface
     let targetPosition;
+    let targetLookAt;
 
     if (viewMode === "globe") {
       const surfaceRadius = EARTH_RADIUS;
       const focusRadius = surfaceRadius + FOCUS_HEIGHT;
       targetPosition = latLngToCartesian(focusLatitude, focusLongitude, focusRadius);
+      targetLookAt = { x: 0, y: 0, z: 0 }; // Look at center for globe
     } else {
-      // For orbit view, position relative to the local center
-      targetPosition = {
-        x: (focusLongitude - longitude) * 100,
-        y: FOCUS_HEIGHT / 50, // Scale down for orbit view  
-        z: (focusLatitude - latitude) * 100
-      };
+      // For orbit view, use proper meter-based calculations
+      const SCENE_UNITS_PER_METER = 0.01; // Scale down for orbit view (1 meter = 0.01 scene units)
+      
+      // Calculate meters per degree at current latitude
+      const METERS_PER_DEGREE_LAT = 111320; // Approximately constant
+      const latRad = latitude * Math.PI / 180;
+      const METERS_PER_DEGREE_LON = 111320 * Math.cos(latRad);
+      
+      // Convert coordinate deltas to meters, then to scene units
+      const deltaLonMeters = (focusLongitude - longitude) * METERS_PER_DEGREE_LON;
+      const deltaLatMeters = (focusLatitude - latitude) * METERS_PER_DEGREE_LAT;
+      
+      const localX = deltaLonMeters * SCENE_UNITS_PER_METER;
+      const localZ = deltaLatMeters * SCENE_UNITS_PER_METER;
+      const localY = FOCUS_HEIGHT * SCENE_UNITS_PER_METER; // Proper 100km altitude
+      
+      targetPosition = { x: localX, y: localY, z: localZ };
+      // Look at the surface point in the same coordinate frame
+      targetLookAt = { x: localX, y: 0, z: localZ };
     }
 
     // Animate camera to target position
     const camera = cameraRef.current;
+    const controls = controlsRef.current;
     const startPosition = camera.position.clone();
     const endPosition = new (ThreeRef.current?.Vector3 || Object)();
     endPosition.set(targetPosition.x, targetPosition.y, targetPosition.z);
+
+    // Store original controls state and target
+    const originalTarget = controls?.target?.clone() || null;
+    const originalEnabled = controls?.enabled || false;
+    
+    // Disable controls during animation to prevent conflicts
+    if (controls) {
+      controls.enabled = false;
+    }
 
     // Animation parameters
     let startTime = Date.now();
@@ -626,16 +661,19 @@ export default function MapComponent({
       // Interpolate position
       camera.position.lerpVectors(startPosition, endPosition, easedProgress);
       
-      // Look at the center (for globe view) or target area (for orbit view)
-      if (viewMode === "globe") {
-        camera.lookAt(0, 0, 0);
-      } else {
-        const targetSurface = latLngToCartesian(focusLatitude, focusLongitude, EARTH_RADIUS);
-        camera.lookAt(targetSurface.x, targetSurface.y, targetSurface.z);
+      // Update controls target to focus point and look at target
+      if (controls && controls.target) {
+        controls.target.set(targetLookAt.x, targetLookAt.y, targetLookAt.z);
       }
+      camera.lookAt(targetLookAt.x, targetLookAt.y, targetLookAt.z);
 
       if (progress < 1) {
         focusAnimationIdRef.current = requestAnimationFrame(animateFocus);
+      } else {
+        // Re-enable controls after animation completes
+        if (controls) {
+          controls.enabled = originalEnabled;
+        }
       }
     };
 
