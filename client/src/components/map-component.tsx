@@ -23,11 +23,6 @@ interface MapComponentProps {
   // Dashboard specific props
   plots?: Plot[];
   viewMode?: "orbit" | "globe"; // Default to orbit for NASA map compatibility
-  
-  // Polygon editing props
-  editingBoundary?: boolean;
-  onPolygonComplete?: (points: [number, number, number][]) => void;
-  existingPolygon?: [number, number, number][];
 }
 
 // Debug logging utility
@@ -53,9 +48,6 @@ export default function MapComponent({
   boundaryPoints = [],
   plots = [],
   viewMode = "orbit",
-  editingBoundary = false,
-  onPolygonComplete,
-  existingPolygon = [],
   onError
 }: MapComponentProps) {
   const { data: cesiumData } = useQuery<{cesiumKey: string | null}>({
@@ -78,11 +70,6 @@ export default function MapComponent({
   const [engineReady, setEngineReady] = useState(false);
   const ThreeRef = useRef<any>(null);
   
-  // Polygon editing refs (no React state to avoid re-renders)
-  const isDrawingRef = useRef(false);
-  const polygonPointsRef = useRef<any[]>([]);
-  const currentPolygonMeshRef = useRef<any>(null);
-  const polygonDotsRef = useRef<any[]>([]); // Track visual dots for polygon points
 
   // Constants - adjusted based on view mode
   const CAMERA_NEAR_CLIP = viewMode === "globe" ? 1 : 200;
@@ -627,332 +614,10 @@ export default function MapComponent({
 
   // Working directly with XYZ coordinates - no conversion needed!
 
-  // Render existing polygon when not editing
-  useEffect(() => {
-    if (!engineReady || !tilesRef.current || !existingPolygon?.length || editingBoundary) return;
 
-    // Clear any existing polygon visuals
-    clearPolygonVisuals();
 
-    // Calculate elevated positions: real_point + normalize(real_point) * 1000
-    const visualPoints = existingPolygon.map(([x, y, z]) => {
-      const realPoint = new (ThreeRef.current.Vector3)(x, y, z);
-      const elevatedPoint = realPoint.clone().add(realPoint.clone().normalize().multiplyScalar(1000));
-      return {
-        x: elevatedPoint.x,
-        y: elevatedPoint.y,
-        z: elevatedPoint.z
-      };
-    });
 
-    // Add visual dots for each point
-    visualPoints.forEach(point => {
-      addPolygonDot(point);
-    });
 
-    // Store the visual points for potential editing
-    if (polygonPointsRef.current) {
-      polygonPointsRef.current.length = 0; // Clear array
-      visualPoints.forEach(point => {
-        polygonPointsRef.current.push(point);
-      });
-    }
-
-    console.log(`DEBUG: Rendered existing polygon with ${visualPoints.length} points`);
-  }, [engineReady, existingPolygon, editingBoundary]);
-
-  // Clear polygon visuals when entering edit mode
-  useEffect(() => {
-    if (editingBoundary) {
-      // Explicitly clear visuals when entering edit mode for clean slate
-      clearPolygonVisuals();
-      console.log('DEBUG: Entering edit mode - cleared previous visuals');
-    }
-  }, [editingBoundary]);
-
-  // Helper functions for polygon editing (like in reference implementation)
-  const addPolygonDot = (point: any) => {
-    if (!ThreeRef.current || !tilesRef.current?.group) return;
-    
-    const { SphereGeometry, MeshBasicMaterial, Mesh, Vector3 } = ThreeRef.current;
-    
-    // Create small red sphere to mark the point
-    const geometry = new SphereGeometry(1000, 8, 8); // 1km radius sphere
-    const material = new MeshBasicMaterial({ color: 0xff0000 }); // Red color
-    const dot = new Mesh(geometry, material);
-    
-    // Calculate elevated position: real_point + normalize(real_point) * 1000
-    const realPoint = new Vector3(point.x, point.y, point.z);
-    const elevatedPoint = realPoint.clone().add(realPoint.clone().normalize().multiplyScalar(1000));
-    dot.position.copy(elevatedPoint);
-    
-    // CRITICAL: Add to tiles.group to maintain consistent coordinate frame
-    tilesRef.current.group.add(dot);
-    polygonDotsRef.current.push(dot);
-    
-    console.log('DEBUG: Added visual dot at', point, 'Total dots:', polygonDotsRef.current.length);
-    debugLog('visual_dot_added', {
-      position: point,
-      sphereRadius: 1000,
-      totalDotsInScene: polygonDotsRef.current.length,
-      sceneChildrenCount: tilesRef.current.group.children.length
-    });
-  };
-
-  const clearPolygonVisuals = () => {
-    // Clear polygon mesh
-    if (currentPolygonMeshRef.current) {
-      // CRITICAL: Add/remove from tiles.group to maintain proper coordinate frame
-      if (tilesRef.current?.group) {
-        tilesRef.current.group.remove(currentPolygonMeshRef.current);
-      }
-      currentPolygonMeshRef.current.geometry?.dispose();
-      currentPolygonMeshRef.current.material?.dispose();
-      currentPolygonMeshRef.current = null;
-    }
-    
-    // Clear polygon dots  
-    polygonDotsRef.current.forEach(dot => {
-      if (tilesRef.current?.group) {
-        tilesRef.current.group.remove(dot);
-      }
-      dot.geometry?.dispose();
-      dot.material?.dispose();
-    });
-    polygonDotsRef.current = [];
-    
-    console.log('DEBUG: Cleared all polygon visuals');
-  };
-
-  const updatePolygonVisual = () => {
-    // Only clear and rebuild polygon mesh, keep dots visible during editing
-    if (currentPolygonMeshRef.current) {
-      if (tilesRef.current?.group) {
-        tilesRef.current.group.remove(currentPolygonMeshRef.current);
-      }
-      currentPolygonMeshRef.current.geometry?.dispose();
-      currentPolygonMeshRef.current.material?.dispose();
-      currentPolygonMeshRef.current = null;
-    }
-    
-    if (!ThreeRef.current || polygonPointsRef.current.length < 3) return;
-    
-    const { Vector3, MeshBasicMaterial, Mesh, BufferGeometry, Float32BufferAttribute } = ThreeRef.current;
-    
-    // Convert points to elevated vertices for rendering: real_point + normalize(real_point) * 1000
-    const vertices: number[] = [];
-    polygonPointsRef.current.forEach((point: any) => {
-      const realPoint = new (ThreeRef.current.Vector3)(point.x, point.y, point.z);
-      const elevatedPoint = realPoint.clone().add(realPoint.clone().normalize().multiplyScalar(1000));
-      vertices.push(elevatedPoint.x, elevatedPoint.y, elevatedPoint.z);
-    });
-
-    // Create triangulated faces for the polygon (fan triangulation from first vertex)
-    const indices: number[] = [];
-    for (let i = 1; i < polygonPointsRef.current.length - 1; i++) {
-      indices.push(0, i, i + 1);
-    }
-
-    // Create BufferGeometry
-    const geometry = new BufferGeometry();
-    geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3));
-    geometry.setIndex(indices);
-    geometry.computeVertexNormals();
-
-    // Create semi-transparent green material
-    const material = new MeshBasicMaterial({
-      color: 0x00ff00,
-      opacity: 0.3,
-      transparent: true,
-      side: ThreeRef.current.DoubleSide
-    });
-
-    // Create mesh and add to tiles group (CRITICAL: proper coordinate frame)
-    const mesh = new Mesh(geometry, material);
-    mesh.layers.set(BOUNDARY_LAYER);
-    if (tilesRef.current?.group) {
-      tilesRef.current.group.add(mesh);
-      currentPolygonMeshRef.current = mesh;
-    }
-  };
-
-  // Simple polygon editing effect (like reference implementation)
-  useEffect(() => {
-    console.log('DEBUG: Polygon editing effect triggered:', { 
-      editingBoundary, 
-      engineReady,
-      hasRenderer: !!rendererRef.current,
-      hasCanvas: !!rendererRef.current?.domElement,
-      hasControls: !!controlsRef.current
-    });
-
-    // Handle polygon completion FIRST, before ANY other checks
-    if (!editingBoundary && isDrawingRef.current && polygonPointsRef.current.length >= 3 && onPolygonComplete) {
-      // Return the raw surface intersection points for storage (no modification)
-      const coords: [number, number, number][] = polygonPointsRef.current.map((point: any) => {
-        return [point.x, point.y, point.z]; // Store the raw intersection points
-      });
-      console.log('DEBUG: Completing polygon with raw intersection coords:', coords);
-      
-      debugLog('polygon_completed', {
-        totalPoints: coords.length,
-        coordinates: coords,
-        timestamp: Date.now()
-      });
-      
-      onPolygonComplete(coords);
-      isDrawingRef.current = false;
-      // DON'T clear visuals - let the existing polygon rendering effect handle display
-      return; // Exit early after handling completion
-    }
-    
-    const canvas = rendererRef.current?.domElement;
-    const controls = controlsRef.current;
-    
-    if (!canvas || !controls) {
-      console.log('DEBUG: Missing canvas or controls, waiting...', { 
-        canvas: !!canvas, 
-        controls: !!controls,
-        editingBoundary,
-        engineReady 
-      });
-      return;
-    }
-
-    console.log('DEBUG: Canvas and controls ready!');
-
-    const handleInteraction = async (event: MouseEvent | TouchEvent) => {
-      console.log('DEBUG: Interaction detected!', { 
-        isDrawing: isDrawingRef.current, 
-        currentPoints: polygonPointsRef.current.length,
-        eventType: event.type 
-      });
-      
-      await debugLog('interaction_triggered', {
-        eventType: event.type,
-        isDrawing: isDrawingRef.current,
-        pointCount: polygonPointsRef.current.length,
-        timestamp: Date.now()
-      });
-      
-      if (!tilesRef.current) {
-        console.log('DEBUG: No tiles ref available');
-        await debugLog('no_tiles_ref', { tilesRefExists: !!tilesRef.current });
-        return;
-      }
-
-      // Get client coordinates from mouse or touch event
-      let clientX: number, clientY: number;
-      if (event.type.startsWith('touch')) {
-        const touchEvent = event as TouchEvent;
-        const touch = touchEvent.touches[0] || touchEvent.changedTouches[0];
-        clientX = touch.clientX;
-        clientY = touch.clientY;
-      } else {
-        const mouseEvent = event as MouseEvent;
-        clientX = mouseEvent.clientX;
-        clientY = mouseEvent.clientY;
-      }
-
-      // Calculate position in normalized device coordinates (matching reference)
-      const mouse = {
-        x: (clientX / window.innerWidth) * 2 - 1,
-        y: -(clientY / window.innerHeight) * 2 + 1
-      };
-
-      console.log('DEBUG: Input position:', mouse);
-
-      // Update the raycaster
-      const { Raycaster, Vector2 } = ThreeRef.current;
-      const raycaster = new Raycaster();
-      raycaster.setFromCamera(new Vector2(mouse.x, mouse.y), cameraRef.current);
-
-      // Check for intersections with the tiles group (matching reference)
-      const intersects = raycaster.intersectObject(tilesRef.current.group, true);
-
-      console.log('DEBUG: Ray intersections found:', intersects.length);
-      debugLog('ray_intersections', {
-        intersectionCount: intersects.length,
-        firstIntersection: intersects[0] ? {
-          point: intersects[0].point,
-          distance: intersects[0].distance
-        } : null
-      });
-
-      if (intersects.length > 0) {
-        const worldPoint = intersects[0].point.clone();
-        console.log('DEBUG: Intersection point (world):', worldPoint);
-        
-        // Only add to polygon if we're drawing
-        if (isDrawingRef.current) {
-          // CRITICAL: Convert world coordinates to tiles.group local space
-          const localPoint = tilesRef.current.group.worldToLocal(worldPoint.clone());
-          console.log('DEBUG: Converted to local space:', localPoint);
-          
-          // Store the raw intersection point (no modification)
-          polygonPointsRef.current.push(localPoint);
-          console.log('DEBUG: Added raw surface intersection point:', localPoint);
-          console.log('DEBUG: Added point to polygon. Total points:', polygonPointsRef.current.length);
-          
-          debugLog('polygon_point_added', {
-            pointIndex: polygonPointsRef.current.length - 1,
-            totalPoints: polygonPointsRef.current.length,
-            coordinates: [localPoint.x, localPoint.y, localPoint.z],
-            timestamp: Date.now()
-          });
-          
-          // Add visual dot for this point (addPolygonDot will calculate elevation internally)
-          addPolygonDot(localPoint);
-          updatePolygonVisual();
-        }
-      } else {
-        console.log('DEBUG: No intersections found with tiles');
-      }
-    };
-
-    if (editingBoundary) {
-      // Start polygon editing
-      isDrawingRef.current = true;
-      clearPolygonVisuals();
-      
-      // Always start with fresh polygon - flush previous points as requested
-      polygonPointsRef.current = [];
-      console.log('DEBUG: Starting fresh polygon editing (previous points flushed)');
-      // Keep controls enabled, just check drawing state in handler (like reference)
-      
-      // Add both mouse and touch event listeners for cross-device support
-      canvas.addEventListener('mousedown', handleInteraction);
-      canvas.addEventListener('touchstart', handleInteraction);
-      canvas.style.cursor = 'crosshair';
-      canvas.style.touchAction = 'none'; // Prevent default touch behaviors
-      
-      console.log('DEBUG: Added click and touch event listeners');
-      console.log('DEBUG: Started polygon editing');
-      
-      debugLog('polygon_editing_started', {
-        isDrawing: true,
-        initialPointCount: 0,
-        timestamp: Date.now()
-      });
-      
-      debugLog('event_listeners_added', {
-        canvasElement: canvas.tagName,
-        canvasClass: canvas.className,
-        boundingRect: canvas.getBoundingClientRect(),
-        hasEventListeners: true
-      });
-    }
-
-    return () => {
-      if (canvas) {
-        canvas.removeEventListener('mousedown', handleInteraction);
-        canvas.removeEventListener('touchstart', handleInteraction);
-        canvas.style.cursor = 'default';
-        canvas.style.touchAction = '';
-      }
-      // Controls stay enabled throughout (like reference)
-    };
-  }, [editingBoundary, engineReady, onPolygonComplete]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -992,12 +657,6 @@ export default function MapComponent({
         boundaryMeshRef.current.material?.dispose();
       }
 
-      // Clean up current polygon mesh
-      if (currentPolygonMeshRef.current && tilesRef.current?.group) {
-        tilesRef.current.group.remove(currentPolygonMeshRef.current);
-        currentPolygonMeshRef.current.geometry?.dispose();
-        currentPolygonMeshRef.current.material?.dispose();
-      }
 
       // Clean up renderer
       if (rendererRef.current && containerRef.current) {
