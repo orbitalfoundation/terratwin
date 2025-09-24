@@ -700,7 +700,7 @@ export default function MapComponent({
       // DIRECT CAMERA POSITIONING - Calculate spherical coordinates manually
       const latRad = focusLatitude * Math.PI / 180;
       const lngRad = focusLongitude * Math.PI / 180;
-      const altitude = 2000000; // 2000km from earth center (high enough to see the location)
+      const altitude = 15000000; // 15,000km from earth center (well above atmosphere for proper view)
       
       // Calculate position on sphere using spherical coordinates
       const x = altitude * Math.cos(latRad) * Math.cos(lngRad);
