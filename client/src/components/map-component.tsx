@@ -713,9 +713,9 @@ export default function MapComponent({
         controls.enabled = false;
       }
       
-      // SWAP LAT/LON + NEGATIVE LONGITUDE - north/south work, east/west reversed
-      const lat = focusLongitude * Math.PI / 180;  // Use longitude as latitude
-      const lon = -focusLatitude * Math.PI / 180;  // Use NEGATIVE latitude as longitude
+      // SWAP LAT/LON + NEGATIVE LATITUDE - north/south work, east/west reversed
+      const lat = -focusLongitude * Math.PI / 180;  // Use NEGATIVE longitude as latitude
+      const lon = focusLatitude * Math.PI / 180;   // Use latitude as longitude
       const radius = EARTH_RADIUS * 2.5; // Much higher than city dots (2.5x earth radius = ~16,000km from center)
       
       // EXACTLY THE SAME MATH AS WORKING CITY DOTS - just bigger radius
