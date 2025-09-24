@@ -242,6 +242,7 @@ export default function MapComponent({
           MathUtils,
           Vector2,
           Vector3,
+          Spherical,
           SphereGeometry,
           MeshBasicMaterial,
           Mesh,
@@ -701,23 +702,30 @@ export default function MapComponent({
     console.log(`🎯 CAMERA FOCUS REQUEST: Target point (${focusLatitude}°, ${focusLongitude}°)`);
     
     if (viewMode === "globe") {
-      // Use same spherical coordinate math as dots, but closer to surface
+      // Use Three.js Spherical helper for cleaner coordinate calculation
+      const { Spherical, Vector3 } = ThreeRef.current;
+      const cameraRadius = EARTH_RADIUS * 1.5; // Closer to surface (1.5x Earth radius)
+      
+      // Convert degrees to radians
       const lat = focusLatitude * Math.PI / 180;
       const lon = focusLongitude * Math.PI / 180;
-      const cameraRadius = EARTH_RADIUS * 1.5; // Closer to surface (1.5x Earth radius)
       
       console.log(`📐 SPHERICAL CALC: lat=${lat.toFixed(4)} rad, lon=${lon.toFixed(4)} rad, radius=${cameraRadius.toFixed(0)}`);
       
-      // Position camera using exact same math as dot placement
-      const cameraX = cameraRadius * Math.cos(lat) * Math.cos(lon);
-      const cameraY = cameraRadius * Math.cos(lat) * Math.sin(lon);
-      const cameraZ = cameraRadius * Math.sin(lat);
+      // Create spherical coordinates (radius, phi, theta)
+      // Note: Three.js uses phi=polar angle from Y+ axis, theta=azimuthal angle from X+ axis
+      const phi = Math.PI / 2 - lat; // Convert latitude to polar angle
+      const theta = lon; // Longitude directly maps to azimuthal angle
       
-      console.log(`📹 CAMERA VECTOR: (${cameraX.toFixed(0)}, ${cameraY.toFixed(0)}, ${cameraZ.toFixed(0)})`);
-      console.log(`📏 DISTANCE CHECK: ${Math.sqrt(cameraX*cameraX + cameraY*cameraY + cameraZ*cameraZ).toFixed(0)} = ${cameraRadius.toFixed(0)}`);
+      const spherical = new Spherical(cameraRadius, phi, theta);
+      const cameraPosition = new Vector3();
+      cameraPosition.setFromSpherical(spherical);
       
-      // Set camera position directly
-      camera.position.set(cameraX, cameraY, cameraZ);
+      console.log(`📹 CAMERA VECTOR: (${cameraPosition.x.toFixed(0)}, ${cameraPosition.y.toFixed(0)}, ${cameraPosition.z.toFixed(0)})`);
+      console.log(`📏 DISTANCE CHECK: ${cameraPosition.length().toFixed(0)} = ${cameraRadius.toFixed(0)}`);
+      
+      // Set camera position using Three.js helper result
+      camera.position.copy(cameraPosition);
       
       // Point camera toward Earth center (0,0,0)
       camera.lookAt(0, 0, 0);
@@ -728,7 +736,7 @@ export default function MapComponent({
       }
       controls.update();
       
-      console.log(`✅ CAMERA POSITIONED: Final position (${cameraX.toFixed(0)}, ${cameraY.toFixed(0)}, ${cameraZ.toFixed(0)}) looking at Earth center`);
+      console.log(`✅ CAMERA POSITIONED: Final position (${cameraPosition.x.toFixed(0)}, ${cameraPosition.y.toFixed(0)}, ${cameraPosition.z.toFixed(0)}) looking at Earth center`);
     } else {
       // For orbit mode, use local coordinate system (unchanged)
       const SCENE_UNITS_PER_METER = 0.01;
