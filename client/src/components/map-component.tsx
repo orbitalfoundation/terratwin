@@ -704,7 +704,7 @@ export default function MapComponent({
     console.log(`🎯 Direct camera positioning to (${focusLatitude}, ${focusLongitude})`);
     
     if (viewMode === "globe") {
-      // DISABLE CONTROLS temporarily to prevent override
+      // DISABLE CONTROLS COMPLETELY - no interference with manual camera positioning
       if (controls) {
         controls.enabled = false;
       }
@@ -719,23 +719,13 @@ export default function MapComponent({
       const y = radius * Math.cos(lat) * Math.sin(lon);
       const z = radius * Math.sin(lat);
       
-      // Set camera position directly
+      // Set camera position directly - NO CONTROLS INTERFERENCE
       camera.position.set(x, y, z);
       
       // Point camera at earth center (where the dots are)
       camera.lookAt(0, 0, 0);
       
-      // Force controls to acknowledge the new position
-      if (controls) {
-        controls.target.set(0, 0, 0);
-        controls.update();
-        // Re-enable controls AFTER positioning
-        setTimeout(() => {
-          if (controls) controls.enabled = true;
-        }, 100);
-      }
-      
-      console.log(`🎯 Camera positioned using dot math at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}) looking at origin, controls disabled temporarily`);
+      console.log(`🎯 Camera positioned using dot math at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}) looking at origin, controls DISABLED`);
     } else {
       // For orbit mode, use local coordinate system (unchanged)
       const SCENE_UNITS_PER_METER = 0.01;
@@ -751,12 +741,13 @@ export default function MapComponent({
       const y = 100000 * SCENE_UNITS_PER_METER;
       
       camera.position.set(x, y, z);
-      if (controls && controls.target) {
-        controls.target.set(x, 0, z);
-        controls.update();
+      
+      // DISABLE CONTROLS in orbit mode too
+      if (controls) {
+        controls.enabled = false;
       }
       
-      console.log(`🎯 Orbit camera positioned at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)})`);
+      console.log(`🎯 Orbit camera positioned at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}), controls DISABLED`);
     }
     
   }, [focusTrigger, focusLatitude, focusLongitude, engineReady, viewMode, latitude, longitude]);
