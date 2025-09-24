@@ -170,7 +170,6 @@ export default function PlotDetail() {
           {/* Simulation */}
           <Card className="bg-card border-border">
             <CardContent className="p-6">
-              <h3 className="text-lg font-medium mb-4 text-primary">Plot Simulation</h3>
               <div className="rounded-lg overflow-hidden">
                 <iframe 
                   src="/standalone-sim/index.html"
