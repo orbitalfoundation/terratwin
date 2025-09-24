@@ -762,21 +762,12 @@ export default function MapComponent({
             new Three.Vector3(forward_x, forward_y, forward_z) // Forward (Down)
           );
           
-          // Convert to quaternion and apply to camera
+          // Convert to quaternion and apply to camera  
           const quaternion = new Three.Quaternion();
           quaternion.setFromRotationMatrix(rotationMatrix);
+          camera.quaternion.copy(quaternion);
           
-          // CAMERA ORIENTATION ROTATION - Fix visual "sideways" orientation
-          // Try Z-axis rotation since Y-axis failed (could be any axis)
-          const cameraRotation = new Three.Quaternion();
-          cameraRotation.setFromAxisAngle(new Three.Vector3(0, 0, 1), Math.PI / 2); // 90° around Z
-          
-          // Combine camera rotation with ENU quaternion  
-          const finalQuaternion = new Three.Quaternion();
-          finalQuaternion.multiplyQuaternions(cameraRotation, quaternion);
-          camera.quaternion.copy(finalQuaternion);
-          
-          console.log(`🔄 Applied 90° Z-axis camera rotation to fix sideways view`);
+          console.log(`🧭 Coordinate system fixed, camera may still be sideways (but functional)`);
           
           // Update all matrices
           camera.updateMatrix();
