@@ -704,6 +704,11 @@ export default function MapComponent({
     console.log(`🎯 Direct camera positioning to (${focusLatitude}, ${focusLongitude})`);
     
     if (viewMode === "globe") {
+      // DISABLE CONTROLS temporarily to prevent override
+      if (controls) {
+        controls.enabled = false;
+      }
+      
       // USE EXACT SAME POSITIONING AS CITY DOTS - just at higher altitude
       const lat = focusLatitude * Math.PI / 180;
       const lon = focusLongitude * Math.PI / 180;
@@ -720,13 +725,17 @@ export default function MapComponent({
       // Point camera at earth center (where the dots are)
       camera.lookAt(0, 0, 0);
       
-      // Update controls target if available (but don't rely on it)
-      if (controls && controls.target) {
+      // Force controls to acknowledge the new position
+      if (controls) {
         controls.target.set(0, 0, 0);
         controls.update();
+        // Re-enable controls AFTER positioning
+        setTimeout(() => {
+          if (controls) controls.enabled = true;
+        }, 100);
       }
       
-      console.log(`🎯 Camera positioned using dot math at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}) looking at origin`);
+      console.log(`🎯 Camera positioned using dot math at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}) looking at origin, controls disabled temporarily`);
     } else {
       // For orbit mode, use local coordinate system (unchanged)
       const SCENE_UNITS_PER_METER = 0.01;
