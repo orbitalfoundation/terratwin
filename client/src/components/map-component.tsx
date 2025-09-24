@@ -713,9 +713,9 @@ export default function MapComponent({
         controls.enabled = false;
       }
       
-      // USE EXACT SAME POSITIONING AS CITY DOTS - just at higher altitude
-      const lat = focusLatitude * Math.PI / 180;
-      const lon = focusLongitude * Math.PI / 180;
+      // SWAP LAT/LON AS TEST - maybe coordinates are swapped in the system
+      const lat = focusLongitude * Math.PI / 180; // Use longitude as latitude
+      const lon = focusLatitude * Math.PI / 180;  // Use latitude as longitude
       const radius = EARTH_RADIUS * 2.5; // Much higher than city dots (2.5x earth radius = ~16,000km from center)
       
       // EXACTLY THE SAME MATH AS WORKING CITY DOTS - just bigger radius
