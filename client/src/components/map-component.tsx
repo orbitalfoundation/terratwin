@@ -81,7 +81,7 @@ export default function MapComponent({
   const ThreeRef = useRef<any>(null);
   
   // Camera positioning strategy
-  const CAMERA_STRATEGY = 'orbit_controls' as 'euler' | 'spherical' | 'globe_controls' | 'orbit_controls';
+  const CAMERA_STRATEGY = 'euler' as 'euler' | 'spherical' | 'globe_controls';
   
   // Major cities with different colors and sizes
   const MAJOR_CITIES = [
@@ -385,18 +385,11 @@ export default function MapComponent({
         
         cameraRef.current = camera;
 
-        // Create controls based on view mode - USE ORBITCONTROLS FOR BOTH MODES
+        // Create controls based on view mode
         let controls;
         if (viewMode === "globe") {
-          // USE THREE.JS ORBITCONTROLS instead of GlobeControls for better control
-          controls = new OrbitControls(camera, renderer.domElement);
-          controls.target.set(0, 0, 0); // Look at earth center
+          controls = new GlobeControls(scene, camera, renderer.domElement);
           controls.enableDamping = true;
-          controls.dampingFactor = 0.05;
-          controls.enableZoom = true;
-          controls.enableRotate = true;
-          controls.enablePan = false; // Disable panning to keep focus on globe
-          console.log("🎮 OrbitControls created for globe mode");
         } else {
           controls = new OrbitControls(camera, renderer.domElement);
           controls.minDistance = CAMERA_MIN_DISTANCE;
@@ -814,34 +807,6 @@ export default function MapComponent({
           } else {
             console.warn("GlobeControls strategy selected but controls don't support setLatitudeLongitude");
           }
-          break;
-        }
-        
-        case 'orbit_controls': {
-          // ENABLE EXISTING CONTROLS FOR DRAGGING - Position camera then enable controls
-          const lat = focusLatitude * Math.PI / 180;
-          const lon = focusLongitude * Math.PI / 180;
-          const altitude = EARTH_RADIUS * 2.5;
-          
-          const cosLat = Math.cos(lat);
-          const x = altitude * cosLat * Math.cos(lon);
-          const y = altitude * cosLat * Math.sin(lon);
-          const z = altitude * Math.sin(lat);
-          
-          camera.position.set(x, y, z);
-          camera.lookAt(0, 0, 0);
-          
-          // ENABLE EXISTING CONTROLS - allow dragging after positioning
-          if (controls) {
-            controls.enabled = true;
-            console.log(`🎮 Controls enabled for dragging (type: ${controls.constructor.name})`);
-          }
-          
-          camera.updateMatrix();
-          camera.updateMatrixWorld(true);
-          camera.updateProjectionMatrix();
-          
-          console.log(`🎮 OrbitControls strategy: Camera at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}), dragging ENABLED`);
           break;
         }
       }
