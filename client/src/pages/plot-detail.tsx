@@ -173,7 +173,7 @@ export default function PlotDetail() {
               <h3 className="text-lg font-medium mb-4 text-primary">Plot Simulation</h3>
               <div className="rounded-lg overflow-hidden">
                 <iframe 
-                  src="/src/standalone-sim/index.html"
+                  src="/standalone-sim/index.html"
                   className="w-full h-96 border-0 rounded-lg"
                   title="Bamboo Plot Simulation"
                   data-testid="plot-simulation-iframe"
