@@ -385,11 +385,18 @@ export default function MapComponent({
         
         cameraRef.current = camera;
 
-        // Create controls based on view mode
+        // Create controls based on view mode - USE ORBITCONTROLS FOR BOTH MODES
         let controls;
         if (viewMode === "globe") {
-          controls = new GlobeControls(scene, camera, renderer.domElement);
+          // USE THREE.JS ORBITCONTROLS instead of GlobeControls for better control
+          controls = new OrbitControls(camera, renderer.domElement);
+          controls.target.set(0, 0, 0); // Look at earth center
           controls.enableDamping = true;
+          controls.dampingFactor = 0.05;
+          controls.enableZoom = true;
+          controls.enableRotate = true;
+          controls.enablePan = false; // Disable panning to keep focus on globe
+          console.log("🎮 OrbitControls created for globe mode");
         } else {
           controls = new OrbitControls(camera, renderer.domElement);
           controls.minDistance = CAMERA_MIN_DISTANCE;
