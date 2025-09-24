@@ -725,8 +725,17 @@ export default function MapComponent({
       // Point camera at earth center (where the dots are)
       camera.lookAt(0, 0, 0);
       
+      // FORCE MATRIX UPDATES - camera transforms might not be updating
+      camera.updateMatrix();
+      camera.updateMatrixWorld(true);
+      camera.updateProjectionMatrix();
+      
       console.log(`🎯 Camera positioned using dot math at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}) looking at origin, controls DISABLED`);
       console.log(`📍 Target: ${focusLatitude}°N, ${focusLongitude}°E`);
+      
+      // DEBUG CAMERA STATE - check if transforms are correct
+      console.log(`📷 Camera actual position: (${camera.position.x.toFixed(0)}, ${camera.position.y.toFixed(0)}, ${camera.position.z.toFixed(0)})`);
+      console.log(`📷 Camera up vector: (${camera.up.x.toFixed(3)}, ${camera.up.y.toFixed(3)}, ${camera.up.z.toFixed(3)})`);
       
       // Log cardinal direction for debugging axis system
       let direction = "";
@@ -773,9 +782,11 @@ export default function MapComponent({
       
       animationIdRef.current = requestAnimationFrame(animate);
       
-      if (!tilesRef.current || !cameraRef.current || !rendererRef.current || !controlsRef.current) return;
+      if (!tilesRef.current || !cameraRef.current || !rendererRef.current) return;
 
-      controlsRef.current.update();
+      // SKIP CONTROLS UPDATE - controls are disabled, don't override camera position
+      // controlsRef.current.update(); // COMMENTED OUT to prevent camera override
+      
       tilesRef.current.setResolutionFromRenderer(cameraRef.current, rendererRef.current);
       tilesRef.current.setCamera(cameraRef.current);
       cameraRef.current.updateMatrixWorld();
