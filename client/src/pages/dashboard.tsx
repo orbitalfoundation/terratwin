@@ -37,6 +37,10 @@ export default function Dashboard() {
   // Debug cities for camera testing
   const DEBUG_CITIES = [
     { name: "Origin (0,0)", lat: 0, lng: 0 },
+    { name: "East", lat: 0, lng: -20 },
+    { name: "West", lat: 0, lng: 20 },
+    { name: "North", lat: 20, lng: 0 },
+    { name: "South", lat: -20, lng: 0 },
     { name: "New York", lat: 40.7128, lng: -74.0060 },
     { name: "London", lat: 51.5074, lng: -0.1278 },
     { name: "Tokyo", lat: 35.6762, lng: 139.6503 },

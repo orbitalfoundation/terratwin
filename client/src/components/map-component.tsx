@@ -83,6 +83,10 @@ export default function MapComponent({
   // Major cities with different colors and sizes
   const MAJOR_CITIES = [
     { name: "Origin (0,0)", lat: 0, lng: 0, color: 0xffffff, size: 1.5 }, // White - Starting point
+    { name: "East", lat: 0, lng: -20, color: 0x00ff00, size: 1.2 }, // Green - East axis
+    { name: "West", lat: 0, lng: 20, color: 0xff0080, size: 1.2 }, // Pink - West axis  
+    { name: "North", lat: 20, lng: 0, color: 0x0080ff, size: 1.2 }, // Light Blue - North axis
+    { name: "South", lat: -20, lng: 0, color: 0xff8000, size: 1.2 }, // Orange - South axis
     { name: "New York", lat: 40.7128, lng: -74.0060, color: 0xff0000, size: 1.2 }, // Red
     { name: "London", lat: 51.5074, lng: -0.1278, color: 0x0000ff, size: 1.1 }, // Blue
     { name: "Tokyo", lat: 35.6762, lng: 139.6503, color: 0xff00ff, size: 1.3 }, // Magenta
