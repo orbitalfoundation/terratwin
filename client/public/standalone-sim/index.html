@@ -28,67 +28,69 @@
             </div>
         </header>
 
-        <!-- Main Content -->
-        <div class="flex-1 flex">
-            <!-- Sidebar -->
-            <aside class="w-64 bg-gray-800 border-r border-gray-700 p-4">
-                <div class="space-y-6">
-                    <!-- Controls -->
-                    <div>
-                        <h3 class="text-lg font-semibold mb-3">Controls</h3>
-                        <div class="space-y-2">
-                            <button id="startBtn" class="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition">
-                                Start
-                            </button>
-                            <button id="pauseBtn" class="w-full bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded transition">
-                                Pause
-                            </button>
-                            <button id="stepBtn" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition">
-                                Step (1 day)
-                            </button>
-                            <button id="yearBtn" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition">
-                                Step (1 year)
-                            </button>
-                            <button id="resetBtn" class="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition">
-                                Reset
-                            </button>
-                        </div>
-                    </div>
-
+        <!-- Controls Bar -->
+        <div class="bg-gray-800 border-b border-gray-700 px-4 py-3">
+            <div class="container mx-auto flex items-center justify-between">
+                <!-- Control Buttons -->
+                <div class="flex items-center space-x-2">
+                    <button id="startBtn" class="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Start">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z"/>
+                        </svg>
+                    </button>
+                    <button id="pauseBtn" class="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Pause">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
+                        </svg>
+                    </button>
+                    <button id="stepBtn" class="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Step (1 day)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l8-7-8-7zm8 0v14h2V5h-2z"/>
+                        </svg>
+                    </button>
+                    <button id="yearBtn" class="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Step (1 year)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M4 5v14l8-7-8-7zm8 0v14l8-7-8-7z"/>
+                        </svg>
+                    </button>
+                    <button id="resetBtn" class="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Reset">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                        </svg>
+                    </button>
+                    
                     <!-- Speed Control -->
-                    <div>
-                        <h3 class="text-lg font-semibold mb-3">Speed</h3>
-                        <div class="flex items-center space-x-2">
-                            <input id="speedControl" type="range" min="1" max="10" value="1" class="flex-1">
-                            <span id="speedValue" class="text-sm w-8">1x</span>
-                        </div>
-                    </div>
-
-                    <!-- Statistics -->
-                    <div>
-                        <h3 class="text-lg font-semibold mb-3">Statistics</h3>
-                        <div class="space-y-2 text-sm">
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Bamboo Height:</span>
-                                <span id="bambooHeight">0m</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Coffee Height:</span>
-                                <span id="coffeeHeight">0m</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Harvested:</span>
-                                <span id="harvested">0</span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-400">Value:</span>
-                                <span id="value">$0</span>
-                            </div>
-                        </div>
+                    <div class="flex items-center space-x-2 ml-4 border-l border-gray-600 pl-4">
+                        <span class="text-sm text-gray-400">Speed:</span>
+                        <input id="speedControl" type="range" min="1" max="10" value="1" class="w-24">
+                        <span id="speedValue" class="text-sm w-8 text-gray-300">1x</span>
                     </div>
                 </div>
-            </aside>
+                
+                <!-- Statistics -->
+                <div class="flex items-center space-x-6 text-sm">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-gray-400">Bamboo:</span>
+                        <span id="bambooHeight" class="text-white">0m</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-gray-400">Coffee:</span>
+                        <span id="coffeeHeight" class="text-white">0m</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-gray-400">Harvested:</span>
+                        <span id="harvested" class="text-white">0</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-gray-400">Value:</span>
+                        <span id="value" class="text-white">$0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
             <!-- Main View -->
             <main class="flex-1 flex flex-col">
                 <!-- Tabs -->
@@ -99,6 +101,9 @@
                         </button>
                         <button data-tab="stats" class="px-6 py-3 hover:bg-gray-700 transition border-b-2 border-transparent">
                             Statistics
+                        </button>
+                        <button data-tab="config" class="px-6 py-3 hover:bg-gray-700 transition border-b-2 border-transparent">
+                            Configuration
                         </button>
                     </div>
                 </div>
@@ -111,6 +116,9 @@
                     <div data-content="stats" class="absolute inset-0 hidden p-4 overflow-y-auto">
                         <canvas id="statsCanvas" class="w-full bg-gray-900 rounded" style="height: 400px;"></canvas>
                         <!-- Stats table will be dynamically added here -->
+                    </div>
+                    <div data-content="config" class="absolute inset-0 hidden p-4 overflow-y-auto">
+                        <div id="configPanel"></div>
                     </div>
                 </div>
             </main>

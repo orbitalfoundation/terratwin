@@ -4,6 +4,7 @@ import { prototypical_plot } from '../prototypes/plot.js';
 import { volume_service } from '../services/volume.js';
 import { StatsCanvas } from './stats-canvas.js';
 import { dem_service } from '../services/dem.js';
+import { ConfigPanel } from './config-panel.js';
 
 export class BambooSimApp {
     constructor() {
@@ -12,6 +13,7 @@ export class BambooSimApp {
         this.currentDay = 0;
         this.animationId = null;
         this.statsCanvas = null;
+        this.configPanel = null;
         this.activeTab = '3d';
         this.demVolume = null;
         
@@ -79,6 +81,15 @@ export class BambooSimApp {
             if (this.plot && this.plot.stats) {
                 this.statsCanvas.update(this.plot.stats, this.currentDay);
             }
+        }
+        
+        // Initialize config panel if switching to config tab
+        if (tabName === 'config') {
+            if (!this.configPanel) {
+                this.configPanel = new ConfigPanel('configPanel');
+            }
+            // Update metrics in config panel
+            this.updateConfigMetrics();
         }
     }
     
@@ -156,6 +167,11 @@ export class BambooSimApp {
         // Update stats canvas if active
         if (this.statsCanvas && this.activeTab === 'stats' && this.plot) {
             this.statsCanvas.update(this.plot.stats, this.currentDay);
+        }
+        
+        // Update config panel metrics if active
+        if (this.configPanel && this.activeTab === 'config') {
+            this.updateConfigMetrics();
         }
     }
     
@@ -248,5 +264,29 @@ export class BambooSimApp {
         } catch (error) {
             console.error('BambooSimApp: Failed to load DEM:', error);
         }
+    }
+    
+    updateConfigMetrics() {
+        if (!this.configPanel || !this.plot) return;
+        
+        let culmCount = 0;
+        let clumpCount = 0;
+        
+        this.plot.children.forEach(entity => {
+            if (entity.clump) {
+                clumpCount++;
+                culmCount += entity.children.length;
+            }
+        });
+        
+        const metrics = {
+            avgHeight: this.plot.stats.totalGrowth[this.plot.stats.totalGrowth.length - 1] || 0,
+            clumps: clumpCount,
+            livePoles: culmCount,
+            harvested: this.plot.stats.cumulativeHarvest,
+            co2: this.plot.stats.cumulativeCO2
+        };
+        
+        this.configPanel.updateMetrics(metrics);
     }
 }
