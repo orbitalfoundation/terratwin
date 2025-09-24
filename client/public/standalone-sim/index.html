@@ -33,28 +33,6 @@
             <!-- Sidebar -->
             <aside class="w-64 bg-gray-800 border-r border-gray-700 p-4">
                 <div class="space-y-6">
-                    <!-- Controls -->
-                    <div>
-                        <h3 class="text-lg font-semibold mb-3">Controls</h3>
-                        <div class="space-y-2">
-                            <button id="startBtn" class="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition">
-                                Start
-                            </button>
-                            <button id="pauseBtn" class="w-full bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded transition">
-                                Pause
-                            </button>
-                            <button id="stepBtn" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition">
-                                Step (1 day)
-                            </button>
-                            <button id="yearBtn" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition">
-                                Step (1 year)
-                            </button>
-                            <button id="resetBtn" class="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition">
-                                Reset
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- Speed Control -->
                     <div>
                         <h3 class="text-lg font-semibold mb-3">Speed</h3>
@@ -91,6 +69,27 @@
 
             <!-- Main View -->
             <main class="flex-1 flex flex-col">
+                <!-- Controls - Above Tabs -->
+                <div class="bg-gray-800 border-b border-gray-700 p-3">
+                    <div class="flex items-center justify-center space-x-2">
+                        <button id="startBtn" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded text-sm transition">
+                            Start
+                        </button>
+                        <button id="pauseBtn" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded text-sm transition">
+                            Pause
+                        </button>
+                        <button id="stepBtn" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded text-sm transition">
+                            Step (1 day)
+                        </button>
+                        <button id="yearBtn" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded text-sm transition">
+                            Step (1 year)
+                        </button>
+                        <button id="resetBtn" class="px-3 py-1 bg-gray-700 hover:bg-gray-600 border border-gray-600 rounded text-sm transition">
+                            Reset
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Tabs -->
                 <div class="bg-gray-800 border-b border-gray-700">
                     <div class="flex">
