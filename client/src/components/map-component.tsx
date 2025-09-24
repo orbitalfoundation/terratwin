@@ -718,9 +718,13 @@ export default function MapComponent({
       const lon = focusLongitude * Math.PI / 180;
       const radius = EARTH_RADIUS * 2.5; // Much higher than city dots (2.5x earth radius = ~16,000km from center)
       
-      // EXACTLY THE SAME MATH AS WORKING CITY DOTS - just bigger radius
-      const x = radius * Math.cos(lat) * Math.cos(lon);
-      const y = radius * Math.cos(lat) * Math.sin(lon);
+      // APPLY 90° CLOCKWISE ROTATION to compensate for globe's root transform
+      // Globe shows 10°N as 10°W = 90° counterclockwise rotation in globe
+      // So rotate camera coordinates 90° clockwise to compensate  
+      // Original: x=cos(lat)*cos(lon), y=cos(lat)*sin(lon), z=sin(lat)
+      // Rotated: x=cos(lat)*sin(lon), y=-cos(lat)*cos(lon), z=sin(lat)
+      const x = radius * Math.cos(lat) * Math.sin(lon);
+      const y = -radius * Math.cos(lat) * Math.cos(lon);
       const z = radius * Math.sin(lat);
       
       // Set camera position - IDENTICAL to dots
