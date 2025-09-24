@@ -708,7 +708,7 @@ export default function MapComponent({
       
       // Convert degrees to radians
       const lat = focusLatitude * Math.PI / 180;
-      const lon = focusLongitude * Math.PI / 180;
+      const lon = focusLongitude * Math.PI / 180 + Math.PI;
       
       console.log(`📐 SPHERICAL CALC: lat=${lat.toFixed(4)} rad, lon=${lon.toFixed(4)} rad, radius=${cameraRadius.toFixed(0)}`);
       
