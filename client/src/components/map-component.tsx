@@ -714,18 +714,28 @@ export default function MapComponent({
       const lon = focusLongitude * Math.PI / 180;
       const radius = EARTH_RADIUS * 2.5; // Much higher than city dots (2.5x earth radius = ~16,000km from center)
       
-      // SAME MATH AS CITY DOTS - proven to work correctly
-      const x = radius * Math.cos(lat) * Math.cos(lon);
-      const y = radius * Math.cos(lat) * Math.sin(lon);
-      const z = radius * Math.sin(lat);
+      // TRY Y-Z AXIS SWAP - maybe 3D world uses different coordinate system than dots
+      const x = radius * Math.cos(lat) * Math.cos(lon);  
+      const y = radius * Math.sin(lat);                   // Y = latitude (up/down)
+      const z = radius * Math.cos(lat) * Math.sin(lon);  // Z = longitude (forward/back)
       
-      // Set camera position directly - NO CONTROLS INTERFERENCE
+      // Set camera position with swapped axes 
       camera.position.set(x, y, z);
       
       // Point camera at earth center (where the dots are)
       camera.lookAt(0, 0, 0);
       
       console.log(`🎯 Camera positioned using dot math at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}) looking at origin, controls DISABLED`);
+      console.log(`📍 Target: ${focusLatitude}°N, ${focusLongitude}°E`);
+      
+      // Log cardinal direction for debugging axis system
+      let direction = "";
+      if (Math.abs(focusLatitude) < 1 && Math.abs(focusLongitude) < 1) direction = "🎯 ORIGIN";
+      else if (focusLatitude > 40 && focusLongitude < -70) direction = "🇺🇸 NORTH AMERICA"; 
+      else if (focusLatitude > 35 && focusLongitude > 135) direction = "🇯🇵 ASIA";
+      else if (focusLatitude < -30 && focusLongitude > 15) direction = "🇿🇦 SOUTH AFRICA";
+      else if (focusLatitude > 50 && Math.abs(focusLongitude) < 5) direction = "🇬🇧 EUROPE";
+      console.log(`📍 Expected: ${direction}`);
     } else {
       // For orbit mode, use local coordinate system (unchanged)
       const SCENE_UNITS_PER_METER = 0.01;
