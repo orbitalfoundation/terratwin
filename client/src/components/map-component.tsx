@@ -690,107 +690,40 @@ export default function MapComponent({
     updateCities();
   }, [engineReady, viewMode, latitude, longitude]);
 
-  // Camera focus functionality - using proper GlobeControls API
+  // Camera focus functionality - using direct positioning like dots but further out
   useEffect(() => {
     if (!engineReady || !cameraRef.current || !controlsRef.current || focusTrigger === 0) return;
     if (focusLatitude === undefined || focusLongitude === undefined) return;
 
+    const camera = cameraRef.current!;
     const controls = controlsRef.current!;
     
+    console.log(`Direct camera positioning to (${focusLatitude}, ${focusLongitude})`);
+    
     if (viewMode === "globe") {
-      // Use only GlobeControls API - NO manual camera positioning!
-      const latRad = focusLatitude * Math.PI / 180;
-      const lngRad = focusLongitude * Math.PI / 180;
-      const altitude = 100000; // 100km elevation (distance from surface)
+      // Use same spherical coordinate math as dots, but much further out
+      const lat = focusLatitude * Math.PI / 180;
+      const lon = focusLongitude * Math.PI / 180;
+      const cameraRadius = EARTH_RADIUS * 3.0; // Much further out than dots (3x Earth radius)
       
-      let focused = false;
+      // Position camera using exact same math as dot placement
+      const cameraX = cameraRadius * Math.cos(lat) * Math.cos(lon);
+      const cameraY = cameraRadius * Math.cos(lat) * Math.sin(lon);
+      const cameraZ = cameraRadius * Math.sin(lat);
       
-      // Robust fallback chain using only GlobeControls methods
+      // Set camera position directly
+      camera.position.set(cameraX, cameraY, cameraZ);
       
-      // Method 1: Try flyTo with instant duration (try degrees first, then radians)
-      if (!focused && typeof controls.flyTo === 'function') {
-        const camera = cameraRef.current!;
-        const initialPos = camera.position.clone();
-        
-        // Try degrees variant first
-        try {
-          controls.flyTo({ lat: focusLatitude, lon: focusLongitude, altitude }, { duration: 0 });
-          controls.update(); // Ensure instant effect
-          
-          // Check if camera actually moved (detect no-op)
-          if (camera.position.distanceTo(initialPos) > 0.1) {
-            console.log('Globe focus: used flyTo method (degrees)');
-            focused = true;
-          } else {
-            console.warn('flyTo (degrees) no-op detected, trying radians variant');
-          }
-        } catch (error) {
-          console.warn('flyTo (degrees) failed:', error);
-        }
-        
-        // Try radians variant if degrees failed or was no-op
-        if (!focused) {
-          try {
-            controls.flyTo({ lat: latRad, lon: lngRad, altitude }, { duration: 0 });
-            controls.update(); // Ensure instant effect
-            
-            // Check if camera actually moved (detect no-op)
-            if (camera.position.distanceTo(initialPos) > 0.1) {
-              console.log('Globe focus: used flyTo method (radians)');
-              focused = true;
-            } else {
-              console.warn('flyTo (radians) no-op detected, trying setLatitudeLongitude');
-            }
-          } catch (error2) {
-            console.warn('flyTo (radians) failed, trying setLatitudeLongitude:', error2);
-          }
-        }
+      // Point camera toward Earth center (0,0,0)
+      camera.lookAt(0, 0, 0);
+      
+      // Update controls to match new camera position
+      if (controls.target) {
+        controls.target.set(0, 0, 0);
       }
+      controls.update();
       
-      // Method 2: Try setLatitudeLongitude + setAltitude (canonical approach)
-      if (!focused && typeof controls.setLatitudeLongitude === 'function') {
-        try {
-          controls.setLatitudeLongitude(latRad, lngRad);
-          if (typeof controls.setAltitude === 'function') {
-            controls.setAltitude(altitude); // Surface distance, not radial
-            console.log('Globe focus: used setLatitudeLongitude + setAltitude');
-          } else if (typeof controls.setDistance === 'function') {
-            controls.setDistance(altitude); // Distance from surface, not center
-            console.log('Globe focus: used setLatitudeLongitude + setDistance');
-          }
-          controls.update();
-          focused = true;
-        } catch (error) {
-          console.warn('setLatitudeLongitude failed, trying setLatLon:', error);
-        }
-      }
-      
-      // Method 3: Try setLatLon + setAltitude
-      if (!focused && typeof controls.setLatLon === 'function') {
-        try {
-          controls.setLatLon(latRad, lngRad);
-          if (typeof controls.setAltitude === 'function') {
-            controls.setAltitude(altitude); // Surface distance, not radial
-            console.log('Globe focus: used setLatLon + setAltitude');
-          } else if (typeof controls.setDistance === 'function') {
-            controls.setDistance(altitude); // Distance from surface, not center
-            console.log('Globe focus: used setLatLon + setDistance');
-          }
-          controls.update();
-          focused = true;
-        } catch (error) {
-          console.warn('setLatLon failed:', error);
-        }
-      }
-      
-      // If all GlobeControls methods failed, log available methods for debugging
-      if (!focused) {
-        const availableMethods = Object.getOwnPropertyNames(controls).filter(name => 
-          typeof controls[name] === 'function' && 
-          (name.includes('lat') || name.includes('lon') || name.includes('altitude') || name.includes('distance') || name.includes('fly'))
-        );
-        console.error('All GlobeControls focusing methods failed. Available focus methods:', availableMethods);
-      }
+      console.log(`Camera positioned at (${cameraX.toFixed(0)}, ${cameraY.toFixed(0)}, ${cameraZ.toFixed(0)}) looking at (0,0,0)`);
     } else {
       // For orbit mode, use local coordinate system (unchanged)
       const SCENE_UNITS_PER_METER = 0.01;
@@ -805,11 +738,13 @@ export default function MapComponent({
       const z = deltaLatMeters * SCENE_UNITS_PER_METER;
       const y = 100000 * SCENE_UNITS_PER_METER;
       
-      cameraRef.current!.position.set(x, y, z);
+      camera.position.set(x, y, z);
       if (controls.target) {
         controls.target.set(x, 0, z);
       }
       controls.update();
+      
+      console.log(`Orbit camera positioned at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)})`);
     }
     
   }, [focusTrigger, focusLatitude, focusLongitude, engineReady, viewMode, latitude, longitude]);
