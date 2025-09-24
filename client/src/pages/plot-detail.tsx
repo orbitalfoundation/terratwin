@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Plot } from "@shared/schema";
+import BambooSimulation from "@/components/simulation/BambooSimulation";
 
 export default function PlotDetail() {
   const { id } = useParams();
@@ -165,38 +166,32 @@ export default function PlotDetail() {
           </Card>
         </div>
 
-        {/* Map and Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Simulation */}
+        {/* Simulation and Details */}
+        <div className="space-y-8">
+          {/* Plot Simulation */}
           <Card className="bg-card border-border">
             <CardContent className="p-6">
               <h3 className="text-lg font-medium mb-4 text-primary">Plot Simulation</h3>
-              <div className="rounded-lg overflow-hidden">
-                <iframe 
-                  src="/standalone-sim/index.html"
-                  className="w-full h-[768px] border-0 rounded-lg"
-                  title="Bamboo Plot Simulation"
-                  data-testid="plot-simulation-iframe"
-                  sandbox="allow-scripts allow-same-origin"
+              <div className="rounded-lg overflow-hidden h-[700px]">
+                <BambooSimulation 
+                  plotId={id}
+                  className="h-full"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Plot Details */}
-          <div className="space-y-6">
-
-            {plot.notes && (
-              <Card className="bg-card border-border">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-medium mb-4 text-primary">Management Notes</h3>
-                  <p className="text-muted-foreground text-sm" data-testid="text-plot-notes">
-                    {plot.notes}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          {plot.notes && (
+            <Card className="bg-card border-border">
+              <CardContent className="p-6">
+                <h3 className="text-lg font-medium mb-4 text-primary">Management Notes</h3>
+                <p className="text-muted-foreground text-sm" data-testid="text-plot-notes">
+                  {plot.notes}
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* Action Buttons */}
