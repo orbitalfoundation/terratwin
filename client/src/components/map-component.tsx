@@ -697,20 +697,20 @@ export default function MapComponent({
     console.log(`🎯 Direct camera positioning to (${focusLatitude}, ${focusLongitude})`);
     
     if (viewMode === "globe") {
-      // DIRECT CAMERA POSITIONING - Calculate spherical coordinates manually
-      const latRad = focusLatitude * Math.PI / 180;
-      const lngRad = focusLongitude * Math.PI / 180;
-      const altitude = 15000000; // 15,000km from earth center (well above atmosphere for proper view)
+      // USE EXACT SAME POSITIONING AS CITY DOTS - just at higher altitude
+      const lat = focusLatitude * Math.PI / 180;
+      const lon = focusLongitude * Math.PI / 180;
+      const radius = EARTH_RADIUS * 2.5; // Much higher than city dots (2.5x earth radius = ~16,000km from center)
       
-      // Calculate position on sphere using spherical coordinates
-      const x = altitude * Math.cos(latRad) * Math.cos(lngRad);
-      const y = altitude * Math.cos(latRad) * Math.sin(lngRad);
-      const z = altitude * Math.sin(latRad);
+      // SAME MATH AS CITY DOTS - proven to work correctly
+      const x = radius * Math.cos(lat) * Math.cos(lon);
+      const y = radius * Math.cos(lat) * Math.sin(lon);
+      const z = radius * Math.sin(lat);
       
       // Set camera position directly
       camera.position.set(x, y, z);
       
-      // Point camera at earth center
+      // Point camera at earth center (where the dots are)
       camera.lookAt(0, 0, 0);
       
       // Update controls target if available (but don't rely on it)
@@ -719,7 +719,7 @@ export default function MapComponent({
         controls.update();
       }
       
-      console.log(`🎯 Camera positioned at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}) looking at origin`);
+      console.log(`🎯 Camera positioned using dot math at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}) looking at origin`);
     } else {
       // For orbit mode, use local coordinate system (unchanged)
       const SCENE_UNITS_PER_METER = 0.01;
