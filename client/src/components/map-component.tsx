@@ -714,12 +714,12 @@ export default function MapComponent({
       const lon = focusLongitude * Math.PI / 180;
       const radius = EARTH_RADIUS * 2.5; // Much higher than city dots (2.5x earth radius = ~16,000km from center)
       
-      // TRY Y-Z AXIS SWAP - maybe 3D world uses different coordinate system than dots
-      const x = radius * Math.cos(lat) * Math.cos(lon);  
-      const y = radius * Math.sin(lat);                   // Y = latitude (up/down)
-      const z = radius * Math.cos(lat) * Math.sin(lon);  // Z = longitude (forward/back)
+      // EXACTLY THE SAME MATH AS WORKING CITY DOTS - just bigger radius
+      const x = radius * Math.cos(lat) * Math.cos(lon);
+      const y = radius * Math.cos(lat) * Math.sin(lon);
+      const z = radius * Math.sin(lat);
       
-      // Set camera position with swapped axes 
+      // Set camera position - IDENTICAL to dots
       camera.position.set(x, y, z);
       
       // Point camera at earth center (where the dots are)
