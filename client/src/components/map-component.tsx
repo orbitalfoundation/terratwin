@@ -714,8 +714,16 @@ export default function MapComponent({
       switch (CAMERA_STRATEGY) {
         case 'euler': {
           // EULER/QUATERNION APPROACH - Use ENU (East-North-Up) coordinate frame
-          const lat = focusLatitude * Math.PI / 180;
-          const lon = focusLongitude * Math.PI / 180;
+          
+          // COORDINATE SYSTEM ROTATION - If 10°N appears as 10°W, apply 90° clockwise rotation
+          // 90° clockwise: new_lat = lon, new_lon = -lat
+          const rotatedLat = focusLongitude;
+          const rotatedLon = -focusLatitude;
+          
+          const lat = rotatedLat * Math.PI / 180;
+          const lon = rotatedLon * Math.PI / 180;
+          
+          console.log(`📐 Coordinate rotation: (${focusLatitude}, ${focusLongitude}) → (${rotatedLat}, ${rotatedLon})`);
           const totalRadius = EARTH_RADIUS * 2.5; // Total distance from center (same as old approach)
           
           // Camera position at same distance from center as before
