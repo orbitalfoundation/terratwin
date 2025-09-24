@@ -1,0 +1,38 @@
+/* Custom styles for the bamboo simulation */
+
+/* Active tab styling */
+[data-tab].active {
+    @apply border-green-500 bg-gray-700;
+}
+
+/* Hidden content */
+.hidden {
+    display: none !important;
+}
+
+/* Range input styling */
+input[type="range"] {
+    @apply bg-gray-700 rounded-lg appearance-none cursor-pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 bg-green-500 rounded-full cursor-pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+    @apply w-4 h-4 bg-green-500 rounded-full cursor-pointer border-0;
+}
+
+/* Canvas styling */
+canvas {
+    image-rendering: crisp-edges;
+}
+
+/* Three.js container */
+#threejs-container {
+    position: relative;
+}
+
+#threejs-container canvas {
+    display: block;
+}

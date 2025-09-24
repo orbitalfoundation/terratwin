@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bamboo Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js",
+            "three/examples/jsm/controls/OrbitControls.js": "https://cdn.jsdelivr.net/npm/three@0.150.0/examples/jsm/controls/OrbitControls.js"
+        }
+    }
+    </script>
+    <link rel="stylesheet" href="ui/styles.css">
+</head>
+<body class="bg-gray-900 text-white">
+    <div class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="bg-gray-800 border-b border-gray-700 p-4">
+            <div class="container mx-auto flex justify-between items-center">
+                <h1 class="text-2xl font-bold">Bamboo Simulation</h1>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm text-gray-400">Day: <span id="day" class="text-white">0</span></span>
+                    <span class="text-sm text-gray-400">Year: <span id="year" class="text-white">0</span></span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex">
+            <!-- Sidebar -->
+            <aside class="w-64 bg-gray-800 border-r border-gray-700 p-4">
+                <div class="space-y-6">
+                    <!-- Controls -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3">Controls</h3>
+                        <div class="space-y-2">
+                            <button id="startBtn" class="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition">
+                                Start
+                            </button>
+                            <button id="pauseBtn" class="w-full bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded transition">
+                                Pause
+                            </button>
+                            <button id="stepBtn" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition">
+                                Step (1 day)
+                            </button>
+                            <button id="yearBtn" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition">
+                                Step (1 year)
+                            </button>
+                            <button id="resetBtn" class="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded transition">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Speed Control -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3">Speed</h3>
+                        <div class="flex items-center space-x-2">
+                            <input id="speedControl" type="range" min="1" max="10" value="1" class="flex-1">
+                            <span id="speedValue" class="text-sm w-8">1x</span>
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3">Statistics</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Bamboo Height:</span>
+                                <span id="bambooHeight">0m</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Coffee Height:</span>
+                                <span id="coffeeHeight">0m</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Harvested:</span>
+                                <span id="harvested">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Value:</span>
+                                <span id="value">$0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main View -->
+            <main class="flex-1 flex flex-col">
+                <!-- Tabs -->
+                <div class="bg-gray-800 border-b border-gray-700">
+                    <div class="flex">
+                        <button data-tab="3d" class="px-6 py-3 hover:bg-gray-700 transition border-b-2 border-transparent">
+                            3D View
+                        </button>
+                        <button data-tab="stats" class="px-6 py-3 hover:bg-gray-700 transition border-b-2 border-transparent">
+                            Statistics
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="flex-1 relative">
+                    <div data-content="3d" class="absolute inset-0">
+                        <div id="threejs-container" class="w-full h-full"></div>
+                    </div>
+                    <div data-content="stats" class="absolute inset-0 hidden p-4 overflow-y-auto">
+                        <canvas id="statsCanvas" class="w-full bg-gray-900 rounded" style="height: 400px;"></canvas>
+                        <!-- Stats table will be dynamically added here -->
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { BambooSimApp } from './ui/app.js';
+        
+        window.addEventListener('load', () => {
+            const app = new BambooSimApp();
+            console.log("Bamboo Simulation loaded");
+        });
+    </script>
+</body>
+</html>
