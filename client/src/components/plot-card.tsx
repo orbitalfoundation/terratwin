@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Trash2, MapPin } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -110,10 +110,10 @@ export default function PlotCard({ plot, onFocusOnMap }: PlotCardProps) {
                 variant="ghost"
                 size="sm"
                 onClick={handleFocusOnMap}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-primary hover:text-primary-foreground hover:bg-primary"
+                className="text-primary hover:text-primary-foreground hover:bg-primary"
                 data-testid={`button-focus-map-${plot.id}`}
               >
-                <MapPin className="w-4 h-4" />
+                Center
               </Button>
             )}
             <Button
