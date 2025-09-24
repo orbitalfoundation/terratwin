@@ -7,146 +7,73 @@ interface Simulation3DViewProps {
 
 export default function Simulation3DView({ plotData, className = "" }: Simulation3DViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<any>(null);
-  const rendererRef = useRef<any>(null);
-  const animationIdRef = useRef<number>();
+  const volumeServiceRef = useRef<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
-    const initThreeJS = async () => {
+    const initSimulation = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        // Dynamically import Three.js
-        const THREE = await import('three');
-        const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js');
+        // Dynamically import the volume service from the standalone simulation  
+        const volumeModule = await import('../../../public/standalone-sim/services/volume.js');
+        const sysModule = await import('../../../public/standalone-sim/utils/sys.js');
+        const { volume_service } = volumeModule;
+        const { sys } = sysModule;
 
         if (!mounted) return;
 
-        // Create scene
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Sky blue
-        sceneRef.current = scene;
-
-        // Create camera
-        const camera = new THREE.PerspectiveCamera(
-          45,
-          1, // Will be updated in resize
-          0.1,
-          1000
-        );
-        camera.position.set(100, 50, 100);
-        camera.lookAt(50, 0, 50);
-
-        // Create renderer with fallback handling
-        const renderer = new THREE.WebGLRenderer({ 
-          antialias: true,
-          preserveDrawingBuffer: true // Help with some environments
-        });
+        // Initialize the volume service using the sys function
+        console.log('Simulation3DView: Initializing volume service...');
         
-        // Check if WebGL context was created successfully
-        const gl = renderer.getContext();
-        if (!gl) {
-          throw new Error('WebGL context could not be created');
-        }
-        
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        rendererRef.current = renderer;
-
-        // Add to container
-        if (containerRef.current) {
-          containerRef.current.appendChild(renderer.domElement);
-        }
-
-        // Add controls
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.target.set(50, 0, 50);
-
-        // Add lights
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        directionalLight.position.set(100, 100, 50);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
-        scene.add(directionalLight);
-
-        // Add ground plane
-        const groundGeometry = new THREE.PlaneGeometry(100, 100);
-        const groundMaterial = new THREE.MeshLambertMaterial({ color: 0x8B7355 });
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
-        ground.receiveShadow = true;
-        scene.add(ground);
-
-        // Resize handler
-        const handleResize = () => {
-          if (!containerRef.current || !mounted) return;
+        // Wrap volume service initialization to catch WebGL errors
+        try {
+          sys(volume_service);
+          volumeServiceRef.current = volume_service;
           
-          const rect = containerRef.current.getBoundingClientRect();
-          camera.aspect = rect.width / rect.height;
-          camera.updateProjectionMatrix();
-          renderer.setSize(rect.width, rect.height);
-        };
-
-        // Initial resize
-        handleResize();
-
-        // Add resize listener
-        const resizeObserver = new ResizeObserver(handleResize);
-        if (containerRef.current) {
-          resizeObserver.observe(containerRef.current);
-        }
-
-        // Animation loop
-        const animate = () => {
-          if (!mounted) return;
+          // Give it a moment to initialize, then check if it worked
+          setTimeout(() => {
+            if (volume_service.renderer && volume_service.scene) {
+              console.log('Simulation3DView: Volume service initialized successfully');
+              setIsLoading(false);
+            } else {
+              throw new Error('Volume service failed to initialize renderer');
+            }
+          }, 100);
           
-          animationIdRef.current = requestAnimationFrame(animate);
-          controls.update();
-          renderer.render(scene, camera);
-        };
-
-        animate();
-        setIsLoading(false);
+        } catch (volumeError) {
+          console.warn('Volume service initialization failed, falling back to basic 3D view:', volumeError);
+          throw volumeError; // Re-throw to trigger the catch block below
+        }
 
         // Cleanup function
         return () => {
           mounted = false;
-          if (animationIdRef.current) {
-            cancelAnimationFrame(animationIdRef.current);
+          // Clean up the volume service if needed
+          if (volumeServiceRef.current) {
+            // The volume service handles its own cleanup
+            console.log('Simulation3DView: Cleaning up volume service');
           }
-          resizeObserver.disconnect();
-          if (containerRef.current && renderer.domElement) {
-            containerRef.current.removeChild(renderer.domElement);
-          }
-          renderer.dispose();
         };
 
       } catch (err) {
-        console.error('Failed to initialize Three.js:', err);
+        console.error('Failed to initialize simulation volume service:', err);
         
-        // Check if it's a WebGL-related error
         const errorMessage = err instanceof Error ? err.message : String(err);
         if (errorMessage.includes('WebGL') || errorMessage.includes('context')) {
           setError('WebGL is not available in this browser environment. The 3D view requires WebGL support to display the bamboo simulation.');
         } else {
-          setError('Failed to load 3D view. Please try refreshing the page.');
+          setError('Failed to load 3D simulation. Please try refreshing the page.');
         }
         setIsLoading(false);
       }
     };
 
-    initThreeJS();
+    initSimulation();
 
     return () => {
       mounted = false;
@@ -155,11 +82,10 @@ export default function Simulation3DView({ plotData, className = "" }: Simulatio
 
   // Update scene when plot data changes
   useEffect(() => {
-    if (!sceneRef.current || !plotData) return;
+    if (!volumeServiceRef.current || !plotData) return;
 
-    // TODO: Add bamboo and coffee plant meshes based on plotData
-    // This would integrate with the existing volume service logic
-    console.log('Plot data updated:', plotData);
+    // The volume service will handle plot data updates
+    console.log('Simulation3DView: Plot data updated:', plotData);
 
   }, [plotData]);
 
@@ -198,6 +124,7 @@ export default function Simulation3DView({ plotData, className = "" }: Simulatio
   return (
     <div 
       ref={containerRef} 
+      id="threejs-container"
       className={`w-full h-full ${className}`}
       data-testid="simulation-3d-view"
     />
