@@ -42,8 +42,18 @@ export default function Simulation3DView({ plotData, className = "" }: Simulatio
         camera.position.set(100, 50, 100);
         camera.lookAt(50, 0, 50);
 
-        // Create renderer
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        // Create renderer with fallback handling
+        const renderer = new THREE.WebGLRenderer({ 
+          antialias: true,
+          preserveDrawingBuffer: true // Help with some environments
+        });
+        
+        // Check if WebGL context was created successfully
+        const gl = renderer.getContext();
+        if (!gl) {
+          throw new Error('WebGL context could not be created');
+        }
+        
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         rendererRef.current = renderer;
@@ -124,7 +134,14 @@ export default function Simulation3DView({ plotData, className = "" }: Simulatio
 
       } catch (err) {
         console.error('Failed to initialize Three.js:', err);
-        setError('Failed to load 3D view');
+        
+        // Check if it's a WebGL-related error
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        if (errorMessage.includes('WebGL') || errorMessage.includes('context')) {
+          setError('WebGL is not available in this browser environment. The 3D view requires WebGL support to display the bamboo simulation.');
+        } else {
+          setError('Failed to load 3D view. Please try refreshing the page.');
+        }
         setIsLoading(false);
       }
     };
@@ -149,9 +166,19 @@ export default function Simulation3DView({ plotData, className = "" }: Simulatio
   if (error) {
     return (
       <div className={`flex items-center justify-center h-full ${className}`}>
-        <div className="text-center">
-          <p className="text-destructive mb-2">3D View Error</p>
-          <p className="text-sm text-muted-foreground">{error}</p>
+        <div className="text-center max-w-md p-4">
+          <div className="text-destructive mb-2 text-lg">⚠️ 3D View Unavailable</div>
+          <p className="text-sm text-muted-foreground mb-4">{error}</p>
+          {error.includes('WebGL') && (
+            <div className="text-xs text-muted-foreground bg-muted p-3 rounded">
+              <p className="mb-2"><strong>Tip:</strong> To use the 3D view:</p>
+              <ul className="text-left space-y-1">
+                <li>• Try a different browser (Chrome, Firefox, Safari)</li>
+                <li>• Enable hardware acceleration in browser settings</li>
+                <li>• Update your graphics drivers</li>
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     );
