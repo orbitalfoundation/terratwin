@@ -81,7 +81,7 @@ export default function MapComponent({
   const ThreeRef = useRef<any>(null);
   
   // Camera positioning strategy
-  const CAMERA_STRATEGY = 'euler' as 'euler' | 'spherical' | 'globe_controls';
+  const CAMERA_STRATEGY = 'orbit_controls' as 'euler' | 'spherical' | 'globe_controls' | 'orbit_controls';
   
   // Major cities with different colors and sizes
   const MAJOR_CITIES = [
@@ -807,6 +807,53 @@ export default function MapComponent({
           } else {
             console.warn("GlobeControls strategy selected but controls don't support setLatitudeLongitude");
           }
+          break;
+        }
+        
+        case 'orbit_controls': {
+          // THREE.JS ORBITCONTROLS - Position camera then use native Three.js controls
+          const Three = ThreeRef.current;
+          
+          // Position camera using same ECEF math as city dots
+          const lat = focusLatitude * Math.PI / 180;
+          const lon = focusLongitude * Math.PI / 180;
+          const altitude = EARTH_RADIUS * 2.5;
+          
+          const cosLat = Math.cos(lat);
+          const x = altitude * cosLat * Math.cos(lon);
+          const y = altitude * cosLat * Math.sin(lon);
+          const z = altitude * Math.sin(lat);
+          
+          camera.position.set(x, y, z);
+          
+          // Create/update OrbitControls if not exists or wrong type
+          if (!controlsRef.current || controlsRef.current.constructor.name !== 'OrbitControls') {
+            // Import OrbitControls from Three.js
+            if (Three.OrbitControls) {
+              const orbitControls = new Three.OrbitControls(camera, rendererRef.current?.domElement);
+              orbitControls.target.set(0, 0, 0); // Look at earth center
+              orbitControls.enableDamping = true;
+              orbitControls.dampingFactor = 0.05;
+              orbitControls.enableZoom = true;
+              orbitControls.enablePan = false; // Disable panning to keep focus on globe
+              controlsRef.current = orbitControls;
+              console.log(`🎮 OrbitControls created and configured`);
+            } else {
+              console.warn("OrbitControls not available in Three.js build");
+            }
+          } else {
+            // Update existing OrbitControls target
+            controlsRef.current.target.set(0, 0, 0);
+            controlsRef.current.update();
+          }
+          
+          // Point camera at earth center
+          camera.lookAt(0, 0, 0);
+          camera.updateMatrix();
+          camera.updateMatrixWorld(true);
+          camera.updateProjectionMatrix();
+          
+          console.log(`🎮 OrbitControls strategy: Camera at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)})`);
           break;
         }
       }
