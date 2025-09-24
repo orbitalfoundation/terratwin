@@ -80,6 +80,9 @@ export default function MapComponent({
   const [engineReady, setEngineReady] = useState(false);
   const ThreeRef = useRef<any>(null);
   
+  // Camera positioning strategy
+  const CAMERA_STRATEGY = 'euler' as 'euler' | 'spherical' | 'globe_controls';
+  
   // Major cities with different colors and sizes
   const MAJOR_CITIES = [
     { name: "Origin (0,0)", lat: 0, lng: 0, color: 0xffffff, size: 1.5 }, // White - Starting point
@@ -705,50 +708,117 @@ export default function MapComponent({
     const camera = cameraRef.current!;
     const controls = controlsRef.current;
     
-    console.log(`🎯 Direct camera positioning to (${focusLatitude}, ${focusLongitude})`);
+    console.log(`🎯 Camera positioning to (${focusLatitude}, ${focusLongitude}) using strategy: ${CAMERA_STRATEGY}`);
     
     if (viewMode === "globe") {
-      // DISABLE CONTROLS COMPLETELY - no interference with manual camera positioning
-      if (controls) {
-        controls.enabled = false;
+      switch (CAMERA_STRATEGY) {
+        case 'euler': {
+          // EULER/QUATERNION APPROACH - Use ENU (East-North-Up) coordinate frame
+          const lat = focusLatitude * Math.PI / 180;
+          const lon = focusLongitude * Math.PI / 180;
+          const altitude = EARTH_RADIUS * 2.5; // Distance from surface
+          
+          // ECEF position on surface (same as city dots for consistency)
+          const cosLat = Math.cos(lat);
+          const x_surface = EARTH_RADIUS * cosLat * Math.cos(lon);
+          const y_surface = EARTH_RADIUS * cosLat * Math.sin(lon);
+          const z_surface = EARTH_RADIUS * Math.sin(lat);
+          
+          // Surface normal (pointing outward from earth center)
+          const normal_x = x_surface / EARTH_RADIUS;
+          const normal_y = y_surface / EARTH_RADIUS;  
+          const normal_z = z_surface / EARTH_RADIUS;
+          
+          // Camera position at altitude above surface
+          camera.position.set(
+            x_surface + normal_x * altitude,
+            y_surface + normal_y * altitude, 
+            z_surface + normal_z * altitude
+          );
+          
+          // Build ENU coordinate frame at this location
+          const north_x = -cosLat * Math.sin(lat) * Math.cos(lon);
+          const north_y = -cosLat * Math.sin(lat) * Math.sin(lon);
+          const north_z = cosLat;
+          
+          const east_x = -Math.sin(lon);
+          const east_y = Math.cos(lon);
+          const east_z = 0;
+          
+          // Forward vector points down toward surface (negative normal)
+          const forward_x = -normal_x;
+          const forward_y = -normal_y;
+          const forward_z = -normal_z;
+          
+          // Build rotation matrix from ENU basis
+          const Three = ThreeRef.current;
+          const rotationMatrix = new Three.Matrix4();
+          rotationMatrix.makeBasis(
+            new Three.Vector3(east_x, east_y, east_z),      // Right (East)
+            new Three.Vector3(north_x, north_y, north_z),   // Up (North) 
+            new Three.Vector3(forward_x, forward_y, forward_z) // Forward (Down)
+          );
+          
+          // Convert to quaternion and apply to camera
+          const quaternion = new Three.Quaternion();
+          quaternion.setFromRotationMatrix(rotationMatrix);
+          camera.quaternion.copy(quaternion);
+          
+          // Update all matrices
+          camera.updateMatrix();
+          camera.updateMatrixWorld(true);
+          camera.updateProjectionMatrix();
+          
+          console.log(`🧭 Euler strategy: Camera at (${camera.position.x.toFixed(0)}, ${camera.position.y.toFixed(0)}, ${camera.position.z.toFixed(0)})`);
+          break;
+        }
+        
+        case 'spherical': {
+          // ORIGINAL SPHERICAL APPROACH (with all the hacks we tried)
+          if (controls) controls.enabled = false;
+          
+          const lat = -focusLongitude * Math.PI / 180;
+          const lon = focusLatitude * Math.PI / 180;
+          const radius = EARTH_RADIUS * 2.5;
+          
+          const x = radius * Math.cos(lat) * Math.cos(lon);
+          const y = radius * Math.cos(lat) * Math.sin(lon);
+          const z = radius * Math.sin(lat);
+          
+          camera.position.set(x, y, z);
+          camera.lookAt(0, 0, 0);
+          camera.updateMatrix();
+          camera.updateMatrixWorld(true);
+          camera.updateProjectionMatrix();
+          
+          console.log(`📐 Spherical strategy: Camera at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)})`);
+          break;
+        }
+        
+        case 'globe_controls': {
+          // USE NATIVE GLOBECONTROLS (recommended by architect)  
+          if (controls && controls.setLatitudeLongitude) {
+            controls.enabled = true;
+            controls.setLatitudeLongitude(focusLatitude, focusLongitude);
+            if (controls.setAltitude) {
+              controls.setAltitude(EARTH_RADIUS * 1.5);
+            }
+            console.log(`🌍 GlobeControls strategy: Set to (${focusLatitude}, ${focusLongitude})`);
+          } else {
+            console.warn("GlobeControls strategy selected but controls don't support setLatitudeLongitude");
+          }
+          break;
+        }
       }
       
-      // SWAP LAT/LON + NEGATIVE LATITUDE - north/south work, east/west reversed
-      const lat = -focusLongitude * Math.PI / 180;  // Use NEGATIVE longitude as latitude
-      const lon = focusLatitude * Math.PI / 180;   // Use latitude as longitude
-      const radius = EARTH_RADIUS * 2.5; // Much higher than city dots (2.5x earth radius = ~16,000km from center)
-      
-      // EXACTLY THE SAME MATH AS WORKING CITY DOTS - just bigger radius
-      const x = radius * Math.cos(lat) * Math.cos(lon);
-      const y = radius * Math.cos(lat) * Math.sin(lon);
-      const z = radius * Math.sin(lat);
-      
-      // Set camera position - IDENTICAL to dots
-      camera.position.set(x, y, z);
-      
-      // Point camera at earth center (where the dots are)
-      camera.lookAt(0, 0, 0);
-      
-      // FORCE MATRIX UPDATES - camera transforms might not be updating
-      camera.updateMatrix();
-      camera.updateMatrixWorld(true);
-      camera.updateProjectionMatrix();
-      
-      console.log(`🎯 Camera positioned using dot math at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}) looking at origin, controls DISABLED`);
-      console.log(`📍 Target: ${focusLatitude}°N, ${focusLongitude}°E`);
-      
-      // DEBUG CAMERA STATE - check if transforms are correct
-      console.log(`📷 Camera actual position: (${camera.position.x.toFixed(0)}, ${camera.position.y.toFixed(0)}, ${camera.position.z.toFixed(0)})`);
-      console.log(`📷 Camera up vector: (${camera.up.x.toFixed(3)}, ${camera.up.y.toFixed(3)}, ${camera.up.z.toFixed(3)})`);
-      
-      // Log cardinal direction for debugging axis system
+      // Debug info for all strategies
       let direction = "";
       if (Math.abs(focusLatitude) < 1 && Math.abs(focusLongitude) < 1) direction = "🎯 ORIGIN";
       else if (focusLatitude > 40 && focusLongitude < -70) direction = "🇺🇸 NORTH AMERICA"; 
       else if (focusLatitude > 35 && focusLongitude > 135) direction = "🇯🇵 ASIA";
       else if (focusLatitude < -30 && focusLongitude > 15) direction = "🇿🇦 SOUTH AFRICA";
       else if (focusLatitude > 50 && Math.abs(focusLongitude) < 5) direction = "🇬🇧 EUROPE";
-      console.log(`📍 Expected: ${direction}`);
+      console.log(`📍 Target: ${focusLatitude}°N, ${focusLongitude}°E ${direction}`);
     } else {
       // For orbit mode, use local coordinate system (unchanged)
       const SCENE_UNITS_PER_METER = 0.01;
