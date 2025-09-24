@@ -716,25 +716,20 @@ export default function MapComponent({
           // EULER/QUATERNION APPROACH - Use ENU (East-North-Up) coordinate frame
           const lat = focusLatitude * Math.PI / 180;
           const lon = focusLongitude * Math.PI / 180;
-          const altitude = EARTH_RADIUS * 2.5; // Distance from surface
+          const totalRadius = EARTH_RADIUS * 2.5; // Total distance from center (same as old approach)
           
-          // ECEF position on surface (same as city dots for consistency)
+          // Camera position at same distance from center as before
           const cosLat = Math.cos(lat);
-          const x_surface = EARTH_RADIUS * cosLat * Math.cos(lon);
-          const y_surface = EARTH_RADIUS * cosLat * Math.sin(lon);
-          const z_surface = EARTH_RADIUS * Math.sin(lat);
+          const x = totalRadius * cosLat * Math.cos(lon);
+          const y = totalRadius * cosLat * Math.sin(lon);
+          const z = totalRadius * Math.sin(lat);
           
-          // Surface normal (pointing outward from earth center)
-          const normal_x = x_surface / EARTH_RADIUS;
-          const normal_y = y_surface / EARTH_RADIUS;  
-          const normal_z = z_surface / EARTH_RADIUS;
+          camera.position.set(x, y, z);
           
-          // Camera position at altitude above surface
-          camera.position.set(
-            x_surface + normal_x * altitude,
-            y_surface + normal_y * altitude, 
-            z_surface + normal_z * altitude
-          );
+          // Surface normal (pointing from camera toward earth center)
+          const normal_x = -x / totalRadius;
+          const normal_y = -y / totalRadius;  
+          const normal_z = -z / totalRadius;
           
           // Build ENU coordinate frame at this location
           const north_x = -cosLat * Math.sin(lat) * Math.cos(lon);
