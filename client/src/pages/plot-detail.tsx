@@ -1,12 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { ArrowLeft, Edit, MapPin } from "lucide-react";
-import { useState, useCallback } from "react";
+import { ArrowLeft, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import MapComponent from "@/components/map-component";
 import type { Plot } from "@shared/schema";
 
 export default function PlotDetail() {
@@ -169,20 +167,16 @@ export default function PlotDetail() {
 
         {/* Map and Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Map */}
+          {/* Simulation */}
           <Card className="bg-card border-border">
             <CardContent className="p-6">
-              <h3 className="text-lg font-medium mb-4 text-primary">Location</h3>
+              <h3 className="text-lg font-medium mb-4 text-primary">Plot Simulation</h3>
               <div className="rounded-lg overflow-hidden">
-                <MapComponent 
-                  latitude={plot.latitude} 
-                  longitude={plot.longitude} 
-                  height={384}
-                  viewMode="globe"
-                  onError={(error) => {
-                    console.error('Map Error:', error);
-                  }}
-                  data-testid="plot-detail-map"
+                <iframe 
+                  src="/src/standalone-sim/index.html"
+                  className="w-full h-96 border-0 rounded-lg"
+                  title="Bamboo Plot Simulation"
+                  data-testid="plot-simulation-iframe"
                 />
               </div>
             </CardContent>
