@@ -174,7 +174,7 @@ export default function PlotDetail() {
               <div className="rounded-lg overflow-hidden">
                 <iframe 
                   src="/standalone-sim/index.html"
-                  className="w-full h-96 border-0 rounded-lg"
+                  className="w-full h-[768px] border-0 rounded-lg"
                   title="Bamboo Plot Simulation"
                   data-testid="plot-simulation-iframe"
                   sandbox="allow-scripts allow-same-origin"
