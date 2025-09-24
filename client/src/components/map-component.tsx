@@ -698,18 +698,23 @@ export default function MapComponent({
     const camera = cameraRef.current!;
     const controls = controlsRef.current!;
     
-    console.log(`Direct camera positioning to (${focusLatitude}, ${focusLongitude})`);
+    console.log(`🎯 CAMERA FOCUS REQUEST: Target point (${focusLatitude}°, ${focusLongitude}°)`);
     
     if (viewMode === "globe") {
-      // Use same spherical coordinate math as dots, but much further out
+      // Use same spherical coordinate math as dots, but closer to surface
       const lat = focusLatitude * Math.PI / 180;
       const lon = focusLongitude * Math.PI / 180;
-      const cameraRadius = EARTH_RADIUS * 3.0; // Much further out than dots (3x Earth radius)
+      const cameraRadius = EARTH_RADIUS * 1.5; // Closer to surface (1.5x Earth radius)
+      
+      console.log(`📐 SPHERICAL CALC: lat=${lat.toFixed(4)} rad, lon=${lon.toFixed(4)} rad, radius=${cameraRadius.toFixed(0)}`);
       
       // Position camera using exact same math as dot placement
       const cameraX = cameraRadius * Math.cos(lat) * Math.cos(lon);
       const cameraY = cameraRadius * Math.cos(lat) * Math.sin(lon);
       const cameraZ = cameraRadius * Math.sin(lat);
+      
+      console.log(`📹 CAMERA VECTOR: (${cameraX.toFixed(0)}, ${cameraY.toFixed(0)}, ${cameraZ.toFixed(0)})`);
+      console.log(`📏 DISTANCE CHECK: ${Math.sqrt(cameraX*cameraX + cameraY*cameraY + cameraZ*cameraZ).toFixed(0)} = ${cameraRadius.toFixed(0)}`);
       
       // Set camera position directly
       camera.position.set(cameraX, cameraY, cameraZ);
@@ -723,7 +728,7 @@ export default function MapComponent({
       }
       controls.update();
       
-      console.log(`Camera positioned at (${cameraX.toFixed(0)}, ${cameraY.toFixed(0)}, ${cameraZ.toFixed(0)}) looking at (0,0,0)`);
+      console.log(`✅ CAMERA POSITIONED: Final position (${cameraX.toFixed(0)}, ${cameraY.toFixed(0)}, ${cameraZ.toFixed(0)}) looking at Earth center`);
     } else {
       // For orbit mode, use local coordinate system (unchanged)
       const SCENE_UNITS_PER_METER = 0.01;
