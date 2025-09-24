@@ -757,7 +757,19 @@ export default function MapComponent({
           // Convert to quaternion and apply to camera
           const quaternion = new Three.Quaternion();
           quaternion.setFromRotationMatrix(rotationMatrix);
-          camera.quaternion.copy(quaternion);
+          
+          // APPLY 90° PRE-ROTATION to align with globe's coordinate system
+          // If world is "sideways", rotate around Y-axis to correct orientation
+          const preRotation = new Three.Quaternion();
+          preRotation.setFromAxisAngle(new Three.Vector3(0, 1, 0), Math.PI / 2); // 90° around Y
+          
+          // Combine pre-rotation with ENU quaternion
+          const finalQuaternion = new Three.Quaternion();
+          finalQuaternion.multiplyQuaternions(preRotation, quaternion);
+          
+          camera.quaternion.copy(finalQuaternion);
+          
+          console.log(`🔄 Applied 90° Y-axis pre-rotation to align with globe coordinate system`);
           
           // Update all matrices
           camera.updateMatrix();
