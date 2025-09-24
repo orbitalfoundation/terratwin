@@ -80,16 +80,9 @@ export default function MapComponent({
   const [engineReady, setEngineReady] = useState(false);
   const ThreeRef = useRef<any>(null);
   
-  // Camera positioning strategy
-  const CAMERA_STRATEGY = 'euler' as 'euler' | 'spherical' | 'globe_controls';
-  
   // Major cities with different colors and sizes
   const MAJOR_CITIES = [
     { name: "Origin (0,0)", lat: 0, lng: 0, color: 0xffffff, size: 1.5 }, // White - Starting point
-    { name: "10°N", lat: 10, lng: 0, color: 0x00ff88, size: 1.3 }, // Bright green - North
-    { name: "10°S", lat: -10, lng: 0, color: 0xff8800, size: 1.3 }, // Orange - South  
-    { name: "10°E", lat: 0, lng: 10, color: 0x0088ff, size: 1.3 }, // Blue - East
-    { name: "10°W", lat: 0, lng: -10, color: 0xff0088, size: 1.3 }, // Pink - West
     { name: "New York", lat: 40.7128, lng: -74.0060, color: 0xff0000, size: 1.2 }, // Red
     { name: "London", lat: 51.5074, lng: -0.1278, color: 0x0000ff, size: 1.1 }, // Blue
     { name: "Tokyo", lat: 35.6762, lng: 139.6503, color: 0xff00ff, size: 1.3 }, // Magenta
@@ -623,11 +616,8 @@ export default function MapComponent({
       
       // Clear existing city spheres
       citySpheresRef.current.forEach(sphere => {
-        // Remove from tiles group or scene
         if (tilesRef.current?.group) {
           tilesRef.current.group.remove(sphere);
-        } else if (sceneRef.current) {
-          sceneRef.current.remove(sphere);
         }
         sphere.geometry.dispose();
         sphere.material.dispose();
@@ -686,12 +676,8 @@ export default function MapComponent({
         sphere.layers.set(CITIES_LAYER);
         sphere.userData = { city };
         
-        // Try to add to tiles group first, fallback to scene if not available
         if (tilesRef.current?.group) {
           tilesRef.current.group.add(sphere);
-          citySpheresRef.current.push(sphere);
-        } else if (sceneRef.current) {
-          sceneRef.current.add(sphere);
           citySpheresRef.current.push(sphere);
         }
       });
@@ -700,130 +686,107 @@ export default function MapComponent({
     updateCities();
   }, [engineReady, viewMode, latitude, longitude]);
 
-  // Camera focus functionality - DIRECT CAMERA POSITIONING (bypassing GlobeControls)
+  // Camera focus functionality - using proper GlobeControls API
   useEffect(() => {
-    if (!engineReady || !cameraRef.current || focusTrigger === 0) return;
+    if (!engineReady || !cameraRef.current || !controlsRef.current || focusTrigger === 0) return;
     if (focusLatitude === undefined || focusLongitude === undefined) return;
 
-    const camera = cameraRef.current!;
-    const controls = controlsRef.current;
-    
-    console.log(`🎯 Camera positioning to (${focusLatitude}, ${focusLongitude}) using strategy: ${CAMERA_STRATEGY}`);
+    const controls = controlsRef.current!;
     
     if (viewMode === "globe") {
-      switch (CAMERA_STRATEGY) {
-        case 'euler': {
-          // EULER/QUATERNION APPROACH - Use ENU (East-North-Up) coordinate frame
-          
-          // COORDINATE SYSTEM ROTATION - If 10°N appears as 10°W, apply 90° clockwise rotation
-          // 90° clockwise: new_lat = lon, new_lon = -lat
-          const rotatedLat = focusLongitude;
-          const rotatedLon = -focusLatitude;
-          
-          const lat = rotatedLat * Math.PI / 180;
-          const lon = rotatedLon * Math.PI / 180;
-          
-          console.log(`📐 Coordinate rotation: (${focusLatitude}, ${focusLongitude}) → (${rotatedLat}, ${rotatedLon})`);
-          const totalRadius = EARTH_RADIUS * 2.5; // Total distance from center (same as old approach)
-          
-          // Camera position at same distance from center as before
-          const cosLat = Math.cos(lat);
-          const x = totalRadius * cosLat * Math.cos(lon);
-          const y = totalRadius * cosLat * Math.sin(lon);
-          const z = totalRadius * Math.sin(lat);
-          
-          camera.position.set(x, y, z);
-          
-          // Surface normal (pointing from camera toward earth center)
-          const normal_x = -x / totalRadius;
-          const normal_y = -y / totalRadius;  
-          const normal_z = -z / totalRadius;
-          
-          // Build ENU coordinate frame at this location
-          const north_x = -cosLat * Math.sin(lat) * Math.cos(lon);
-          const north_y = -cosLat * Math.sin(lat) * Math.sin(lon);
-          const north_z = cosLat;
-          
-          const east_x = -Math.sin(lon);
-          const east_y = Math.cos(lon);
-          const east_z = 0;
-          
-          // Forward vector points down toward surface (negative normal)
-          const forward_x = -normal_x;
-          const forward_y = -normal_y;
-          const forward_z = -normal_z;
-          
-          // Build rotation matrix from ENU basis
-          const Three = ThreeRef.current;
-          const rotationMatrix = new Three.Matrix4();
-          rotationMatrix.makeBasis(
-            new Three.Vector3(east_x, east_y, east_z),      // Right (East)
-            new Three.Vector3(north_x, north_y, north_z),   // Up (North) 
-            new Three.Vector3(forward_x, forward_y, forward_z) // Forward (Down)
-          );
-          
-          // Convert to quaternion and apply to camera  
-          const quaternion = new Three.Quaternion();
-          quaternion.setFromRotationMatrix(rotationMatrix);
-          camera.quaternion.copy(quaternion);
-          
-          console.log(`🧭 Coordinate system fixed, camera may still be sideways (but functional)`);
-          
-          // Update all matrices
-          camera.updateMatrix();
-          camera.updateMatrixWorld(true);
-          camera.updateProjectionMatrix();
-          
-          console.log(`🧭 Euler strategy: Camera at (${camera.position.x.toFixed(0)}, ${camera.position.y.toFixed(0)}, ${camera.position.z.toFixed(0)})`);
-          break;
-        }
+      // Use only GlobeControls API - NO manual camera positioning!
+      const latRad = focusLatitude * Math.PI / 180;
+      const lngRad = focusLongitude * Math.PI / 180;
+      const altitude = 100000; // 100km elevation (distance from surface)
+      
+      let focused = false;
+      
+      // Robust fallback chain using only GlobeControls methods
+      
+      // Method 1: Try flyTo with instant duration (try degrees first, then radians)
+      if (!focused && typeof controls.flyTo === 'function') {
+        const camera = cameraRef.current!;
+        const initialPos = camera.position.clone();
         
-        case 'spherical': {
-          // ORIGINAL SPHERICAL APPROACH (with all the hacks we tried)
-          if (controls) controls.enabled = false;
+        // Try degrees variant first
+        try {
+          controls.flyTo({ lat: focusLatitude, lon: focusLongitude, altitude }, { duration: 0 });
+          controls.update(); // Ensure instant effect
           
-          const lat = -focusLongitude * Math.PI / 180;
-          const lon = focusLatitude * Math.PI / 180;
-          const radius = EARTH_RADIUS * 2.5;
-          
-          const x = radius * Math.cos(lat) * Math.cos(lon);
-          const y = radius * Math.cos(lat) * Math.sin(lon);
-          const z = radius * Math.sin(lat);
-          
-          camera.position.set(x, y, z);
-          camera.lookAt(0, 0, 0);
-          camera.updateMatrix();
-          camera.updateMatrixWorld(true);
-          camera.updateProjectionMatrix();
-          
-          console.log(`📐 Spherical strategy: Camera at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)})`);
-          break;
-        }
-        
-        case 'globe_controls': {
-          // USE NATIVE GLOBECONTROLS (recommended by architect)  
-          if (controls && controls.setLatitudeLongitude) {
-            controls.enabled = true;
-            controls.setLatitudeLongitude(focusLatitude, focusLongitude);
-            if (controls.setAltitude) {
-              controls.setAltitude(EARTH_RADIUS * 1.5);
-            }
-            console.log(`🌍 GlobeControls strategy: Set to (${focusLatitude}, ${focusLongitude})`);
+          // Check if camera actually moved (detect no-op)
+          if (camera.position.distanceTo(initialPos) > 0.1) {
+            console.log('Globe focus: used flyTo method (degrees)');
+            focused = true;
           } else {
-            console.warn("GlobeControls strategy selected but controls don't support setLatitudeLongitude");
+            console.warn('flyTo (degrees) no-op detected, trying radians variant');
           }
-          break;
+        } catch (error) {
+          console.warn('flyTo (degrees) failed:', error);
+        }
+        
+        // Try radians variant if degrees failed or was no-op
+        if (!focused) {
+          try {
+            controls.flyTo({ lat: latRad, lon: lngRad, altitude }, { duration: 0 });
+            controls.update(); // Ensure instant effect
+            
+            // Check if camera actually moved (detect no-op)
+            if (camera.position.distanceTo(initialPos) > 0.1) {
+              console.log('Globe focus: used flyTo method (radians)');
+              focused = true;
+            } else {
+              console.warn('flyTo (radians) no-op detected, trying setLatitudeLongitude');
+            }
+          } catch (error2) {
+            console.warn('flyTo (radians) failed, trying setLatitudeLongitude:', error2);
+          }
         }
       }
       
-      // Debug info for all strategies
-      let direction = "";
-      if (Math.abs(focusLatitude) < 1 && Math.abs(focusLongitude) < 1) direction = "🎯 ORIGIN";
-      else if (focusLatitude > 40 && focusLongitude < -70) direction = "🇺🇸 NORTH AMERICA"; 
-      else if (focusLatitude > 35 && focusLongitude > 135) direction = "🇯🇵 ASIA";
-      else if (focusLatitude < -30 && focusLongitude > 15) direction = "🇿🇦 SOUTH AFRICA";
-      else if (focusLatitude > 50 && Math.abs(focusLongitude) < 5) direction = "🇬🇧 EUROPE";
-      console.log(`📍 Target: ${focusLatitude}°N, ${focusLongitude}°E ${direction}`);
+      // Method 2: Try setLatitudeLongitude + setAltitude (canonical approach)
+      if (!focused && typeof controls.setLatitudeLongitude === 'function') {
+        try {
+          controls.setLatitudeLongitude(latRad, lngRad);
+          if (typeof controls.setAltitude === 'function') {
+            controls.setAltitude(altitude); // Surface distance, not radial
+            console.log('Globe focus: used setLatitudeLongitude + setAltitude');
+          } else if (typeof controls.setDistance === 'function') {
+            controls.setDistance(altitude); // Distance from surface, not center
+            console.log('Globe focus: used setLatitudeLongitude + setDistance');
+          }
+          controls.update();
+          focused = true;
+        } catch (error) {
+          console.warn('setLatitudeLongitude failed, trying setLatLon:', error);
+        }
+      }
+      
+      // Method 3: Try setLatLon + setAltitude
+      if (!focused && typeof controls.setLatLon === 'function') {
+        try {
+          controls.setLatLon(latRad, lngRad);
+          if (typeof controls.setAltitude === 'function') {
+            controls.setAltitude(altitude); // Surface distance, not radial
+            console.log('Globe focus: used setLatLon + setAltitude');
+          } else if (typeof controls.setDistance === 'function') {
+            controls.setDistance(altitude); // Distance from surface, not center
+            console.log('Globe focus: used setLatLon + setDistance');
+          }
+          controls.update();
+          focused = true;
+        } catch (error) {
+          console.warn('setLatLon failed:', error);
+        }
+      }
+      
+      // If all GlobeControls methods failed, log available methods for debugging
+      if (!focused) {
+        const availableMethods = Object.getOwnPropertyNames(controls).filter(name => 
+          typeof controls[name] === 'function' && 
+          (name.includes('lat') || name.includes('lon') || name.includes('altitude') || name.includes('distance') || name.includes('fly'))
+        );
+        console.error('All GlobeControls focusing methods failed. Available focus methods:', availableMethods);
+      }
     } else {
       // For orbit mode, use local coordinate system (unchanged)
       const SCENE_UNITS_PER_METER = 0.01;
@@ -838,14 +801,11 @@ export default function MapComponent({
       const z = deltaLatMeters * SCENE_UNITS_PER_METER;
       const y = 100000 * SCENE_UNITS_PER_METER;
       
-      camera.position.set(x, y, z);
-      
-      // DISABLE CONTROLS in orbit mode too
-      if (controls) {
-        controls.enabled = false;
+      cameraRef.current!.position.set(x, y, z);
+      if (controls.target) {
+        controls.target.set(x, 0, z);
       }
-      
-      console.log(`🎯 Orbit camera positioned at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}), controls DISABLED`);
+      controls.update();
     }
     
   }, [focusTrigger, focusLatitude, focusLongitude, engineReady, viewMode, latitude, longitude]);
@@ -861,11 +821,9 @@ export default function MapComponent({
       
       animationIdRef.current = requestAnimationFrame(animate);
       
-      if (!tilesRef.current || !cameraRef.current || !rendererRef.current) return;
+      if (!tilesRef.current || !cameraRef.current || !rendererRef.current || !controlsRef.current) return;
 
-      // SKIP CONTROLS UPDATE - controls are disabled, don't override camera position
-      // controlsRef.current.update(); // COMMENTED OUT to prevent camera override
-      
+      controlsRef.current.update();
       tilesRef.current.setResolutionFromRenderer(cameraRef.current, rendererRef.current);
       tilesRef.current.setCamera(cameraRef.current);
       cameraRef.current.updateMatrixWorld();
