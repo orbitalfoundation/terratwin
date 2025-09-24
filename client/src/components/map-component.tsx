@@ -333,7 +333,7 @@ export default function MapComponent({
 
         // Create camera
         const camera = new PerspectiveCamera(
-          60,
+          45,
           container.clientWidth / container.clientHeight,
           CAMERA_NEAR_CLIP,
           CAMERA_FAR_CLIP
