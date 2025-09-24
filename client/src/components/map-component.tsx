@@ -811,10 +811,7 @@ export default function MapComponent({
         }
         
         case 'orbit_controls': {
-          // THREE.JS ORBITCONTROLS - Position camera then use native Three.js controls
-          const Three = ThreeRef.current;
-          
-          // Position camera using same ECEF math as city dots
+          // ENABLE EXISTING CONTROLS FOR DRAGGING - Position camera then enable controls
           const lat = focusLatitude * Math.PI / 180;
           const lon = focusLongitude * Math.PI / 180;
           const altitude = EARTH_RADIUS * 2.5;
@@ -825,35 +822,19 @@ export default function MapComponent({
           const z = altitude * Math.sin(lat);
           
           camera.position.set(x, y, z);
+          camera.lookAt(0, 0, 0);
           
-          // Create/update OrbitControls if not exists or wrong type
-          if (!controlsRef.current || controlsRef.current.constructor.name !== 'OrbitControls') {
-            // Import OrbitControls from Three.js
-            if (Three.OrbitControls) {
-              const orbitControls = new Three.OrbitControls(camera, rendererRef.current?.domElement);
-              orbitControls.target.set(0, 0, 0); // Look at earth center
-              orbitControls.enableDamping = true;
-              orbitControls.dampingFactor = 0.05;
-              orbitControls.enableZoom = true;
-              orbitControls.enablePan = false; // Disable panning to keep focus on globe
-              controlsRef.current = orbitControls;
-              console.log(`🎮 OrbitControls created and configured`);
-            } else {
-              console.warn("OrbitControls not available in Three.js build");
-            }
-          } else {
-            // Update existing OrbitControls target
-            controlsRef.current.target.set(0, 0, 0);
-            controlsRef.current.update();
+          // ENABLE EXISTING CONTROLS - allow dragging after positioning
+          if (controls) {
+            controls.enabled = true;
+            console.log(`🎮 Controls enabled for dragging (type: ${controls.constructor.name})`);
           }
           
-          // Point camera at earth center
-          camera.lookAt(0, 0, 0);
           camera.updateMatrix();
           camera.updateMatrixWorld(true);
           camera.updateProjectionMatrix();
           
-          console.log(`🎮 OrbitControls strategy: Camera at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)})`);
+          console.log(`🎮 OrbitControls strategy: Camera at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)}), dragging ENABLED`);
           break;
         }
       }
