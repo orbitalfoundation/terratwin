@@ -177,6 +177,7 @@ export default function PlotDetail() {
                   className="w-full h-96 border-0 rounded-lg"
                   title="Bamboo Plot Simulation"
                   data-testid="plot-simulation-iframe"
+                  sandbox="allow-scripts allow-same-origin"
                 />
               </div>
             </CardContent>
