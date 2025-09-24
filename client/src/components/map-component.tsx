@@ -616,8 +616,11 @@ export default function MapComponent({
       
       // Clear existing city spheres
       citySpheresRef.current.forEach(sphere => {
+        // Remove from tiles group or scene
         if (tilesRef.current?.group) {
           tilesRef.current.group.remove(sphere);
+        } else if (sceneRef.current) {
+          sceneRef.current.remove(sphere);
         }
         sphere.geometry.dispose();
         sphere.material.dispose();
@@ -676,8 +679,12 @@ export default function MapComponent({
         sphere.layers.set(CITIES_LAYER);
         sphere.userData = { city };
         
+        // Try to add to tiles group first, fallback to scene if not available
         if (tilesRef.current?.group) {
           tilesRef.current.group.add(sphere);
+          citySpheresRef.current.push(sphere);
+        } else if (sceneRef.current) {
+          sceneRef.current.add(sphere);
           citySpheresRef.current.push(sphere);
         }
       });
