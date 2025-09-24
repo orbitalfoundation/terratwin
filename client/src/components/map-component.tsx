@@ -72,7 +72,6 @@ export default function MapComponent({
   const animationIdRef = useRef<number>();
   const boundaryMeshRef = useRef<any>(null);
   const plotSpheresRef = useRef<any[]>([]);
-  const citySpheresRef = useRef<any[]>([]);
   const onLoadModelRef = useRef<any>(null);
   const onDisposeModelRef = useRef<any>(null);
   const boundaryPointsForShaderRef = useRef<any[]>([]);
@@ -80,36 +79,6 @@ export default function MapComponent({
   const [engineReady, setEngineReady] = useState(false);
   const ThreeRef = useRef<any>(null);
   
-  // Major cities with different colors and sizes
-  const MAJOR_CITIES = [
-    { name: "Origin (0,0)", lat: 0, lng: 0, color: 0xffffff, size: 1.5 }, // White - Starting point
-    { name: "East", lat: 0, lng: -20, color: 0x00ff00, size: 1.2 }, // Green - East axis
-    { name: "West", lat: 0, lng: 20, color: 0xff0080, size: 1.2 }, // Pink - West axis  
-    { name: "North", lat: 20, lng: 0, color: 0x0080ff, size: 1.2 }, // Light Blue - North axis
-    { name: "South", lat: -20, lng: 0, color: 0xff8000, size: 1.2 }, // Orange - South axis
-    { name: "New York", lat: 40.7128, lng: -74.0060, color: 0xff0000, size: 1.2 }, // Red
-    { name: "London", lat: 51.5074, lng: -0.1278, color: 0x0000ff, size: 1.1 }, // Blue
-    { name: "Tokyo", lat: 35.6762, lng: 139.6503, color: 0xff00ff, size: 1.3 }, // Magenta
-    { name: "Paris", lat: 48.8566, lng: 2.3522, color: 0xffff00, size: 1.0 }, // Yellow
-    { name: "Sydney", lat: -33.8688, lng: 151.2093, color: 0x00ffff, size: 0.9 }, // Cyan
-    { name: "Dubai", lat: 25.2048, lng: 55.2708, color: 0xffa500, size: 1.1 }, // Orange
-    { name: "São Paulo", lat: -23.5505, lng: -46.6333, color: 0x00ff00, size: 1.2 }, // Green
-    { name: "Mumbai", lat: 19.0760, lng: 72.8777, color: 0x800080, size: 1.3 }, // Purple
-    { name: "Singapore", lat: 1.3521, lng: 103.8198, color: 0xffc0cb, size: 0.8 }, // Pink
-    { name: "Los Angeles", lat: 34.0522, lng: -118.2437, color: 0xff4500, size: 1.1 }, // OrangeRed
-    { name: "Beijing", lat: 39.9042, lng: 116.4074, color: 0x8b0000, size: 1.2 }, // DarkRed
-    { name: "Moscow", lat: 55.7558, lng: 37.6173, color: 0x4b0082, size: 1.0 }, // Indigo
-    { name: "Cairo", lat: 30.0444, lng: 31.2357, color: 0xdaa520, size: 0.9 }, // GoldenRod
-    { name: "Cape Town", lat: -33.9249, lng: 18.4241, color: 0x228b22, size: 0.8 }, // ForestGreen
-    { name: "Mexico City", lat: 19.4326, lng: -99.1332, color: 0xdc143c, size: 1.1 }, // Crimson
-    { name: "Istanbul", lat: 41.0082, lng: 28.9784, color: 0x9932cc, size: 1.0 }, // DarkOrchid
-    { name: "Bangkok", lat: 13.7563, lng: 100.5018, color: 0x20b2aa, size: 0.9 }, // LightSeaGreen
-    { name: "Seoul", lat: 37.5665, lng: 126.9780, color: 0x6495ed, size: 1.1 }, // CornflowerBlue
-    { name: "Buenos Aires", lat: -34.6118, lng: -58.3960, color: 0xb22222, size: 1.0 }, // FireBrick
-    { name: "Toronto", lat: 43.6511, lng: -79.3470, color: 0x2e8b57, size: 0.9 }, // SeaGreen
-    { name: "Lagos", lat: 6.5244, lng: 3.3792, color: 0xff1493, size: 1.2 }, // DeepPink
-    { name: "Jakarta", lat: -6.2088, lng: 106.8456, color: 0x00ced1, size: 1.1 } // DarkTurquoise
-  ];
 
   // Constants - adjusted based on view mode
   const CAMERA_NEAR_CLIP = viewMode === "globe" ? 1 : 200;
@@ -122,7 +91,6 @@ export default function MapComponent({
   const TILES_LAYER = 0;
   const BOUNDARY_LAYER = 1;
   const PLOTS_LAYER = 2;
-  const CITIES_LAYER = 3;
 
   // Shared shader code for clipping (from reference material)
   const CLIPPING_VERTEX_SHADER = `
@@ -612,84 +580,6 @@ export default function MapComponent({
     updatePlots();
   }, [plots, engineReady, viewMode, latitude, longitude]);
 
-  // Handle city visualization
-  useEffect(() => {
-    if (!engineReady || !sceneRef.current || !ThreeRef.current) return;
-
-    const updateCities = () => {
-      const { SphereGeometry, MeshBasicMaterial, Mesh } = ThreeRef.current;
-      
-      // Clear existing city spheres
-      citySpheresRef.current.forEach(sphere => {
-        if (tilesRef.current?.group) {
-          tilesRef.current.group.remove(sphere);
-        }
-        sphere.geometry.dispose();
-        sphere.material.dispose();
-      });
-      citySpheresRef.current = [];
-
-      // Create spheres for each major city
-      MAJOR_CITIES.forEach(city => {
-        // Variable sphere size based on city size multiplier
-        const baseSphereSize = viewMode === "globe" ? EARTH_RADIUS * 0.008 : 800;
-        const sphereSize = baseSphereSize * city.size;
-        
-        // Create sphere geometry
-        const sphereGeometry = new SphereGeometry(sphereSize, 12, 12);
-        
-        // Create material with city's specific color
-        const sphereMaterial = new MeshBasicMaterial({ 
-          color: city.color,
-          opacity: 0.9,
-          transparent: true
-        });
-        
-        const sphere = new Mesh(sphereGeometry, sphereMaterial);
-        
-        if (viewMode === "globe") {
-          // For globe view, position on the surface
-          const lat = city.lat * Math.PI / 180;
-          const lon = city.lng * Math.PI / 180;
-          const radius = EARTH_RADIUS * 1.005; // Slightly above surface
-          
-          sphere.position.set(
-            radius * Math.cos(lat) * Math.cos(lon),
-            radius * Math.cos(lat) * Math.sin(lon),
-            radius * Math.sin(lat)
-          );
-        } else {
-          // For orbit view, use the same meter-based calculations as plot system
-          const SCENE_UNITS_PER_METER = 0.01; // Same scale as focus system
-          
-          // Calculate meters per degree at current latitude
-          const METERS_PER_DEGREE_LAT = 111320; // Approximately constant
-          const latRad = latitude * Math.PI / 180;
-          const METERS_PER_DEGREE_LON = 111320 * Math.cos(latRad);
-          
-          // Convert coordinate deltas to meters, then to scene units
-          const deltaLonMeters = (city.lng - longitude) * METERS_PER_DEGREE_LON;
-          const deltaLatMeters = (city.lat - latitude) * METERS_PER_DEGREE_LAT;
-          
-          const cityX = deltaLonMeters * SCENE_UNITS_PER_METER;
-          const cityZ = deltaLatMeters * SCENE_UNITS_PER_METER;
-          const cityY = 15 * SCENE_UNITS_PER_METER; // Slightly higher than plots (15 meters)
-          
-          sphere.position.set(cityX, cityY, cityZ);
-        }
-        
-        sphere.layers.set(CITIES_LAYER);
-        sphere.userData = { city };
-        
-        if (tilesRef.current?.group) {
-          tilesRef.current.group.add(sphere);
-          citySpheresRef.current.push(sphere);
-        }
-      });
-    };
-
-    updateCities();
-  }, [engineReady, viewMode, latitude, longitude]);
 
   // Camera focus functionality - using direct positioning like dots but further out
   useEffect(() => {
@@ -708,7 +598,7 @@ export default function MapComponent({
       
       // Convert degrees to radians
       const lat = focusLatitude * Math.PI / 180;
-      const lon = focusLongitude * Math.PI / 180;
+      const lon = focusLongitude * Math.PI / 180 + Math.PI/2;
       
       console.log(`📐 SPHERICAL CALC: lat=${lat.toFixed(4)} rad, lon=${lon.toFixed(4)} rad, radius=${cameraRadius.toFixed(0)}`);
       

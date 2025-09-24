@@ -34,46 +34,6 @@ export default function Dashboard() {
     });
   };
 
-  // Debug cities for camera testing
-  const DEBUG_CITIES = [
-    { name: "Origin (0,0)", lat: 0, lng: 0 },
-    { name: "East", lat: 0, lng: -20 },
-    { name: "West", lat: 0, lng: 20 },
-    { name: "North", lat: 20, lng: 0 },
-    { name: "South", lat: -20, lng: 0 },
-    { name: "New York", lat: 40.7128, lng: -74.0060 },
-    { name: "London", lat: 51.5074, lng: -0.1278 },
-    { name: "Tokyo", lat: 35.6762, lng: 139.6503 },
-    { name: "Paris", lat: 48.8566, lng: 2.3522 },
-    { name: "Sydney", lat: -33.8688, lng: 151.2093 },
-    { name: "Dubai", lat: 25.2048, lng: 55.2708 },
-    { name: "São Paulo", lat: -23.5505, lng: -46.6333 },
-    { name: "Mumbai", lat: 19.0760, lng: 72.8777 },
-    { name: "Singapore", lat: 1.3521, lng: 103.8198 },
-    { name: "Los Angeles", lat: 34.0522, lng: -118.2437 },
-    { name: "Beijing", lat: 39.9042, lng: 116.4074 },
-    { name: "Moscow", lat: 55.7558, lng: 37.6173 },
-    { name: "Cairo", lat: 30.0444, lng: 31.2357 },
-    { name: "Cape Town", lat: -33.9249, lng: 18.4241 },
-    { name: "Mexico City", lat: 19.4326, lng: -99.1332 },
-    { name: "Istanbul", lat: 41.0082, lng: 28.9784 },
-    { name: "Bangkok", lat: 13.7563, lng: 100.5018 },
-    { name: "Seoul", lat: 37.5665, lng: 126.9780 },
-    { name: "Buenos Aires", lat: -34.6118, lng: -58.3960 },
-    { name: "Toronto", lat: 43.6511, lng: -79.3470 },
-    { name: "Lagos", lat: 6.5244, lng: 3.3792 },
-    { name: "Jakarta", lat: -6.2088, lng: 106.8456 }
-  ];
-
-  // Function to handle focus on a city (for debugging camera)
-  const handleFocusOnCity = (city: { name: string; lat: number; lng: number }) => {
-    console.log(`Focusing camera on ${city.name} at (${city.lat}, ${city.lng})`);
-    setFocusCoordinates({
-      latitude: city.lat,
-      longitude: city.lng,
-      trigger: Date.now() // Use timestamp to trigger animation
-    });
-  };
 
 
   const totalPlots = plots?.length || 0;
@@ -171,33 +131,6 @@ export default function Dashboard() {
           </div>
         </Card>
 
-        {/* Debug: Camera Focus Testing */}
-        <Card className="bg-card border-border">
-          <div className="px-6 py-4 border-b border-border">
-            <h2 className="text-lg font-medium text-primary" data-testid="text-debug-header">
-              🐛 Debug: Camera Focus Testing
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Click any city button to test camera panning functionality
-            </p>
-          </div>
-          <div className="p-6">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
-              {DEBUG_CITIES.map((city) => (
-                <Button
-                  key={city.name}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleFocusOnCity(city)}
-                  className="text-xs px-2 py-1 h-8"
-                  data-testid={`button-focus-${city.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
-                >
-                  {city.name}
-                </Button>
-              ))}
-            </div>
-          </div>
-        </Card>
 
         {/* Plots List */}
         <Card className="bg-card border-border">
