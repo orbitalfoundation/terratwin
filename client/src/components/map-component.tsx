@@ -702,10 +702,10 @@ export default function MapComponent({
       const lngRad = focusLongitude * Math.PI / 180;
       const altitude = 15000000; // 15,000km from earth center (well above atmosphere for proper view)
       
-      // Calculate position on sphere using EXACT SAME math as city dots (Z = up/down for latitude)
+      // Calculate position on sphere using spherical coordinates
       const x = altitude * Math.cos(latRad) * Math.cos(lngRad);
       const y = altitude * Math.cos(latRad) * Math.sin(lngRad);
-      const z = altitude * Math.sin(latRad); // Z axis for north/south (latitude) - same as dots
+      const z = altitude * Math.sin(latRad);
       
       // Set camera position directly
       camera.position.set(x, y, z);
