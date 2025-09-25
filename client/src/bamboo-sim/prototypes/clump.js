@@ -120,6 +120,25 @@ prototypical_dendrocalamus_asper_clump.onreset = function(plot) {
 		
 		culm.volume.hwd = [0, 0, 0] // height, width, depth - will grow over time
 		culm.culm.age = 0 // age in days
+		
+		// Add initial color variation based on position
+		// Culms near center tend to be slightly darker
+		const positionFactor = distance / culmDistributionRadius
+		const colorVariation = Math.random() * 0.2 - 0.1 // -0.1 to +0.1
+		
+		// Base color components (forest green: 0x228B22 = rgb(34, 139, 34))
+		const baseR = 34
+		const baseG = 139
+		const baseB = 34
+		
+		// Apply position-based and random variation
+		const r = Math.floor(Math.max(0, Math.min(255, baseR + positionFactor * 20 + colorVariation * 30)))
+		const g = Math.floor(Math.max(0, Math.min(255, baseG - positionFactor * 10 + colorVariation * 40)))
+		const b = Math.floor(Math.max(0, Math.min(255, baseB + positionFactor * 5 + colorVariation * 20)))
+		
+		// Set initial color
+		culm.volume.color = (r << 16) | (g << 8) | b
+		
 		counter++
 		clump.children.push(culm)
 	}

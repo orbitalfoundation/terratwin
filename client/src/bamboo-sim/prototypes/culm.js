@@ -37,7 +37,7 @@ export const prototypical_dendrocalamus_asper_culm = {
 		hwd: [ 0,0,0 ],
 		ypr: [ 0,0,0 ],
 		shape: 'cylinder',
-		color: 0x228B22,  // Forest green
+		color: 0x228B22,  // Forest green (will be varied per culm)
 		opacity: 1.0
 	}
 }
@@ -69,4 +69,23 @@ prototypical_dendrocalamus_asper_culm.onstep = function(daysElapsed) {
 		currentTiltAngle,               // Pitch: amount of tilt (reduces with growth)
 		0                               // Roll: no roll
 	]
+	
+	// Update color based on age - younger culms are brighter green, older ones darker
+	// Age factor: 0 to 1 over first 2 years
+	const ageFactor = Math.min(self.culm.age / 730, 1.0)
+	
+	// Base color components (forest green: 0x228B22 = rgb(34, 139, 34))
+	const baseR = 34
+	const baseG = 139
+	const baseB = 34
+	
+	// Vary the color:
+	// Young: brighter/yellower green
+	// Old: darker/bluer green
+	const r = Math.floor(baseR + (1 - ageFactor) * 30) // More red when young
+	const g = Math.floor(baseG + (1 - ageFactor) * 20) // More green when young
+	const b = Math.floor(baseB - (1 - ageFactor) * 10) // Less blue when young
+	
+	// Convert to hex color
+	self.volume.color = (r << 16) | (g << 8) | b
 }
