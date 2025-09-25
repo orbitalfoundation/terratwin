@@ -194,10 +194,10 @@ export default function MapComponent({
           Plugins,
           { DRACOLoader }
         ] = await Promise.all([
-          import('three'),
-          import('3d-tiles-renderer'),
-          import('3d-tiles-renderer/plugins'),
-          import('three/examples/jsm/loaders/DRACOLoader.js')
+          import(/* @vite-ignore */ 'three'),
+          import(/* @vite-ignore */ '3d-tiles-renderer'),
+          import(/* @vite-ignore */ '3d-tiles-renderer/plugins'),
+          import(/* @vite-ignore */ 'three/examples/jsm/loaders/DRACOLoader.js')
         ]);
 
         if (!isActive) return;
@@ -233,7 +233,7 @@ export default function MapComponent({
           ReorientationPlugin
         } = Plugins;
 
-        const { OrbitControls } = await import('three/examples/jsm/controls/OrbitControls.js');
+        const { OrbitControls } = await import(/* @vite-ignore */ 'three/examples/jsm/controls/OrbitControls.js');
 
         console.info('MapComponent: 3D engine loaded, initializing scene...');
 
