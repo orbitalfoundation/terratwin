@@ -6,64 +6,205 @@ import { prototypical_plot } from './prototypes/plot.js';
 import { volume_service } from './services/volume.js';
 import { dem_service } from './services/dem.js';
 
-let started = false
-let demVolume = null
+/// just stuffed sim into a class for now
 
-async function loadDEM() {
+class BambooSimWrapper {
 
-  console.log('BambooSimApp: Loading DEM data...');
-  
-  try {
-      // Load DEM for the plot area (Grand Canyon for now)
-      demVolume = await dem_service.getDemVolume({
-          bounds: {
-              north: 36.063,
-              south: 36.053,
-              east: -112.103,
-              west: -112.113
-          },
-          position: [50, 0, 50],
-          sceneSize: [100, 100],  // Match plot size
-          heightScale: 0.01,
-          includeSatellite: true  // Enable satellite imagery
-      });
-      
-      if (demVolume) {
-          console.log('BambooSimApp: Sending DEM volume to sys()');
-          sys(demVolume);
-          console.log('BambooSimApp: DEM loaded successfully');
-          
-          // Set camera to center on plot
-          sys({
-              id: 'camera-target',
-              volume: {
-                  shape: 'camera',
-                  xyz: [50, 0, 50] // Center of the 100x100 plot
-              }
-          });
-      } else {
-          console.error('BambooSimApp: DEM volume was null');
-      }
-  } catch (error) {
-      console.error('BambooSimApp: Failed to load DEM:', error);
-  }
+	demVolume = null
+	plot = null
+
+	constructor(domElement) {
+		this.build(domElement)
+	}
+
+	async build(domElement) {
+
+		// register service
+		// @todo domelement should not be set on shared thing
+    volume_service.domElement = domElement
+    sys(volume_service)
+
+	  console.log('BambooSimApp: Loading DEM data...');
+
+	  try {
+
+	  		// @todo loading by hand should go away - it should be declarative
+				// @todo use a dynamic area for dem not hardcoded geography
+				// @todo don't call the method directly; use sys()
+
+	      // Load DEM
+	      this.demVolume = await dem_service.getDemVolume({
+	          bounds: {
+	              north: 36.063,
+	              south: 36.053,
+	              east: -112.103,
+	              west: -112.113
+	          },
+	          position: [50, 0, 50],
+	          sceneSize: [100, 100],
+	          heightScale: 0.01,
+	          includeSatellite: true
+	      });
+
+	      if(!this.demVolume) {
+	      	console.error("Cannot load dem")
+	      	return
+	      }
+	      
+				sys(this.demVolume);
+
+        sys({
+            id: 'camera-target',
+            volume: {
+                shape: 'camera',
+                xyz: [50, 0, 50]
+            }
+        });
+
+	  } catch (error) {
+	      console.error('BambooSimApp: Failed to load DEM:', error);
+	  }
+
+	}
+
+	initializeplotOnce() {
+
+		if(this.plot) return
+
+	  console.log('BambooSimApp: Initializing this.plot...');
+	  
+	  // Create plot
+	  this.plot = deepClone(prototypical_plot);
+	  this.plot.id = 1;
+	  this.plot.field.width = 100;
+	  this.plot.field.depth = 100;
+	  this.plot.field.ENABLE_INTERCROPPING = false;
+	  
+	  // Pass DEM data to this.plot.if available
+	  if (this.demVolume && this.demVolume.volume.demData) {
+	      this.plot.demData = this.demVolume.volume.demData;
+	  }
+	  
+	  // Register
+	  sys(this.plot);
+	  
+	  // @todo remove
+	  // Register all children with sys
+	  this.plot.children.forEach(entity => {
+	      sys(entity);
+	      if (entity.children) {
+	          entity.children.forEach(child => sys(child));
+	      }
+	  });
+	}
+
+	isRunning = false
+	currentDay = 0
+	speed = 1
+	rate = 100
+	animationId = null
+	days = 1
+
+	simulationStep() {
+	    for (let i = 0; i < this.days; i++) {
+	        sys({step: 1});
+	        this.currentDay++;
+	    }
+	}
+
+	animate() {
+	    if (!this.isRunning) return
+      this.simulationStep(this.speed)
+      this.animationId = setTimeout(() => this.animate(), this.rate)
+	}
+
+	start() {
+      this.initializeplotOnce()
+	    this.isRunning = true
+	    this.animate()
+	}
+
+	pause() {
+	    this.isRunning = false
+	    if (this.animationId) {
+	        clearTimeout(this.animationId)
+	        this.animationId = null
+	    }
+	}
+
+	step(days = 1) {
+	    if (!this.plot) {
+	        this.initializeplotOnce()
+	    }
+	    this.days = days;
+	    this.simulationStep();
+	    this.days = 1; // Reset to default
+	}
+
+	reset() {
+	    this.pause();
+	    this.currentDay = 0;
+
+	    // @todo does reset even work?
+	    // Send reset command to volume service through sys
+	    sys({ volume: { command: 'reset' } });
+	    
+	}
+
+	// stats
 
 }
+
+let sim = null
 
 export function BambooSim() {
   const ref = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
 		if (!ref.current) return;
-		if (started) return
-		started = true
+		if(!sim) {
+			sim = new BambooSimWrapper(ref.current)
+		}
 
-    console.log('BambooSimApp: Initializing volume service...');
-    volume_service.domElement = ref.current
-    sys(volume_service);
+		// Add event listeners for control buttons
+		const startBtn = document.getElementById('startBtn');
+		const pauseBtn = document.getElementById('pauseBtn');
+		const stepBtn = document.getElementById('stepBtn');
+		const yearBtn = document.getElementById('yearBtn');
+		const resetBtn = document.getElementById('resetBtn');
+		const speedControl = document.getElementById('speedControl') as HTMLInputElement;
+		const speedValue = document.getElementById('speedValue');
 
-    loadDEM()
+		const handleStart = () => sim?.start();
+		const handlePause = () => sim?.pause();
+		const handleStep = () => sim?.step(1);
+		const handleYear = () => sim?.step(365);
+		const handleReset = () => sim?.reset();
+		const handleSpeed = (e: Event) => {
+			const target = e.target as HTMLInputElement;
+			const speed = parseInt(target.value);
+			if (sim) {
+				sim.speed = speed;
+				if (speedValue) speedValue.textContent = `${speed}x`;
+			}
+		};
 
+		startBtn?.addEventListener('click', handleStart);
+		pauseBtn?.addEventListener('click', handlePause);
+		stepBtn?.addEventListener('click', handleStep);
+		yearBtn?.addEventListener('click', handleYear);
+		resetBtn?.addEventListener('click', handleReset);
+		speedControl?.addEventListener('input', handleSpeed);
+
+		// Cleanup event listeners on unmount
+		return () => {
+			startBtn?.removeEventListener('click', handleStart);
+			pauseBtn?.removeEventListener('click', handlePause);
+			stepBtn?.removeEventListener('click', handleStep);
+			yearBtn?.removeEventListener('click', handleYear);
+			resetBtn?.removeEventListener('click', handleReset);
+			speedControl?.removeEventListener('input', handleSpeed);
+		};
 	}, []);
 
 	return (
