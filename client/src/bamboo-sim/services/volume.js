@@ -84,8 +84,8 @@ export const volume_service = {
 		this.scene.add(directionalLight);
 		
 		// Add axes helper (red = X, green = Y, blue = Z)
-		const axesHelper = new THREE.AxesHelper(50); // 50 units long
-		this.scene.add(axesHelper);
+		//const axesHelper = new THREE.AxesHelper(50); // 50 units long
+		//this.scene.add(axesHelper);
 
 /*		
 		// Handle window resize
@@ -147,7 +147,7 @@ export const volume_service = {
 			return;
 		}
 		
-		console.log('Volume service: Processing entity', entity.id, 'kind:', entity.kind, 'shape:', entity.volume.shape, 'color:', entity.volume.color?.toString(16));
+		//console.log('Volume service: Processing entity', entity.id, 'kind:', entity.kind, 'shape:', entity.volume.shape, 'color:', entity.volume.color?.toString(16));
 		
 		// Store reference to entity
 		this.entities.set(entity.id, entity);

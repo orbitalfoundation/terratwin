@@ -47,7 +47,7 @@ export const prototypical_plot = {
 	},
 	
 	// Rendering information
-	volume: {
+	xvolume: {
 		xyz: [ 0,0,0 ],
 		hwd: [ 0.1,100,100 ],  // height, width, depth - very flat box
 		ypr: [ 0,0,0 ],

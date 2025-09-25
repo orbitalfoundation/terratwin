@@ -38,6 +38,7 @@ export function sys(blob) {
 	})
 
 	// onreset -> if your object has an onreset() method then call it now
+	// @todo why is this specialized? fix
 	if(blob.onreset) {
 		console.log("sys: resetting ",blob.id)
 		// Pass plot reference if this is a child entity
