@@ -74,8 +74,13 @@ prototypical_dendrocalamus_asper_clump.onreset = function(plot) {
 		// Position culms randomly within the clump area
 		// Use polar coordinates for natural circular distribution
 		const angle = Math.random() * 2 * Math.PI
-		// Use square root for more even distribution (prevents clustering at center)
-		const distance = Math.sqrt(Math.random()) * culmDistributionRadius
+		
+		// Use a weighted distribution that favors the center
+		// This creates more culms near the center, fewer at the edges
+		// Using power of 0.5 (square root) would give even distribution
+		// Using power of 2 gives more concentration at center
+		const randomValue = Math.random()
+		const distance = Math.pow(randomValue, 2) * culmDistributionRadius
 		
 		// Calculate culm position
 		const culmX = clump.volume.xyz[0] + Math.cos(angle) * distance
