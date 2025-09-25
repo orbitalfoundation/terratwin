@@ -22,7 +22,13 @@ export const prototypical_dendrocalamus_asper_culm = {
 		MAX_HEIGHT_METERS: 30,        // Giant bamboo can reach 30m
 		GROWTH_RATE: 0.02,           // Controls steepness of S-curve (reaches ~95% height by 2 years)
 		GROWTH_MIDPOINT_DAYS: 180,   // Days when growth is fastest (6 months)
-		WIDTH_TO_HEIGHT_RATIO: 0.005 // Roughly 15cm diameter at full height
+		WIDTH_TO_HEIGHT_RATIO: 0.005, // Roughly 15cm diameter at full height
+		
+		// Position-based growth modifiers
+		distanceFromCenter: 0,        // Distance from clump center (meters)
+		growthSpeedModifier: 1.0,     // Multiplier for growth speed based on position
+		initialTiltAngle: 0,          // Initial tilt angle (radians)
+		initialTiltDirection: 0       // Initial tilt direction (radians)
 	},
 	
 	// Rendering information
@@ -40,12 +46,27 @@ prototypical_dendrocalamus_asper_culm.onstep = function(daysElapsed) {
 	const self = this
 	self.culm.age += daysElapsed
 	
+	// Apply growth speed modifier based on distance from center
+	const effectiveAge = self.culm.age * self.culm.growthSpeedModifier
+	
 	// S-curve growth: rapid at first, slowing with age
-	// Using logistic growth function
-	// Logistic S-curve formula
-	self.volume.hwd[0] = self.culm.MAX_HEIGHT_METERS / (1 + Math.exp(-self.culm.GROWTH_RATE * (self.culm.age - self.culm.GROWTH_MIDPOINT_DAYS)))
+	// Using logistic growth function with modified age
+	const currentHeight = self.culm.MAX_HEIGHT_METERS / (1 + Math.exp(-self.culm.GROWTH_RATE * (effectiveAge - self.culm.GROWTH_MIDPOINT_DAYS)))
+	self.volume.hwd[0] = currentHeight
 	
 	// Width grows proportionally but slower
 	self.volume.hwd[1] = self.volume.hwd[0] * self.culm.WIDTH_TO_HEIGHT_RATIO
 	self.volume.hwd[2] = self.volume.hwd[1] // depth same as width (circular)
+	
+	// Adjust tilt angle - becomes straighter as it grows
+	// Start with initial tilt, reduce to 20% of initial when fully grown
+	const growthProgress = currentHeight / self.culm.MAX_HEIGHT_METERS
+	const currentTiltAngle = self.culm.initialTiltAngle * (1 - 0.8 * growthProgress)
+	
+	// Update rotation
+	self.volume.ypr = [
+		self.culm.initialTiltDirection, // Yaw: direction of tilt (unchanged)
+		currentTiltAngle,               // Pitch: amount of tilt (reduces with growth)
+		0                               // Roll: no roll
+	]
 }

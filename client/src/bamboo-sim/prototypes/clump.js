@@ -88,12 +88,23 @@ prototypical_dendrocalamus_asper_clump.onreset = function(plot) {
 		
 		culm.volume.xyz = [culmX, culmY, culmZ]
 		
+		// Store distance from center for growth calculations
+		culm.culm.distanceFromCenter = distance
+		
+		// Calculate growth speed modifier - culms farther from center grow slower
+		// At center: 100% speed, at edge: 60% speed
+		culm.culm.growthSpeedModifier = 1.0 - (distance / culmDistributionRadius) * 0.4
+		
 		// Calculate outward tilt from clump center
-		// Tilt increases with distance from center, up to about 10 degrees
-		const tiltAngle = (distance / culmDistributionRadius) * 0.174533; // 10 degrees in radians
+		// Tilt increases with distance from center, up to about 15 degrees for outer culms
+		const tiltAngle = (distance / culmDistributionRadius) * 0.261799; // 15 degrees in radians
 		const tiltDirection = angle; // Same as position angle
 		
-		// Set rotation (yaw, pitch, roll)
+		// Store initial tilt for dynamic adjustment during growth
+		culm.culm.initialTiltAngle = tiltAngle
+		culm.culm.initialTiltDirection = tiltDirection
+		
+		// Set initial rotation (yaw, pitch, roll)
 		// Pitch tilts the culm outward in the direction it's positioned
 		culm.volume.ypr = [
 			tiltDirection, // Yaw: direction of tilt
