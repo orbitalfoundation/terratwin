@@ -61,9 +61,9 @@ prototypical_dendrocalamus_asper_clump.onreset = function(plot) {
 	const max = this.clump.CULM_MAX
 	let counter = 1
 	
-	// Distribute culms within the clump area (up to 12m diameter)
+	// Distribute culms within a tight area around the clump center
 	// Using a circular distribution pattern
-	const culmDistributionRadius = this.clump.CLUMP_MAX_WIDTH / 2  // Full clump radius for culm distribution
+	const culmDistributionRadius = 1.5  // 1.5 meter radius for tight clustering
 	
 	for(let i = 0; i < max; i++) {
 		const culm = deepClone(prototypical_dendrocalamus_asper_culm)
@@ -74,7 +74,8 @@ prototypical_dendrocalamus_asper_clump.onreset = function(plot) {
 		// Position culms randomly within the clump area
 		// Use polar coordinates for natural circular distribution
 		const angle = Math.random() * 2 * Math.PI
-		const distance = Math.random() * culmDistributionRadius * 0.8 // Keep within 80% of full clump radius
+		// Use square root for more even distribution (prevents clustering at center)
+		const distance = Math.sqrt(Math.random()) * culmDistributionRadius
 		
 		// Calculate culm position
 		const culmX = clump.volume.xyz[0] + Math.cos(angle) * distance
@@ -92,12 +93,12 @@ prototypical_dendrocalamus_asper_clump.onreset = function(plot) {
 		culm.culm.distanceFromCenter = distance
 		
 		// Calculate growth speed modifier - culms farther from center grow slower
-		// At center: 100% speed, at edge: 60% speed
-		culm.culm.growthSpeedModifier = 1.0 - (distance / culmDistributionRadius) * 0.4
+		// At center: 100% speed, at edge: 70% speed (less variation due to tighter radius)
+		culm.culm.growthSpeedModifier = 1.0 - (distance / culmDistributionRadius) * 0.3
 		
 		// Calculate outward tilt from clump center
-		// Tilt increases with distance from center, up to about 15 degrees for outer culms
-		const tiltAngle = (distance / culmDistributionRadius) * 0.261799; // 15 degrees in radians
+		// Tilt increases with distance from center, up to about 10 degrees for outer culms
+		const tiltAngle = (distance / culmDistributionRadius) * 0.174533; // 10 degrees in radians
 		const tiltDirection = angle; // Same as position angle
 		
 		// Store initial tilt for dynamic adjustment during growth
