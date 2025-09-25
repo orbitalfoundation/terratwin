@@ -61,7 +61,7 @@ function setupThree(domElement) {
 	};
 }
 
-export function BambooSim({ className = "h-64 w-full" }) {
+export function BambooSim() {
   const ref = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
@@ -71,89 +71,89 @@ export function BambooSim({ className = "h-64 w-full" }) {
 	}, []);
 
 	return (
-		<div class="flex flex-col h-screen">
-				<div class="bg-gray-800 border-b border-gray-700 px-4 py-3">
-						<div class="container mx-auto flex items-center justify-between">
+		<div className="flex flex-col h-screen">
+				<div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
+						<div className="container mx-auto flex items-center justify-between">
 
-								<div class="flex items-center space-x-2">
-										<button id="startBtn" class="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Start">
+								<div className="flex items-center space-x-2">
+										<button id="startBtn" className="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Start">
 												<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
 														<path d="M8 5v14l11-7z"/>
 												</svg>
 										</button>
-										<button id="pauseBtn" class="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Pause">
+										<button id="pauseBtn" className="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Pause">
 												<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
 														<path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
 												</svg>
 										</button>
-										<button id="stepBtn" class="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Step (1 day)">
+										<button id="stepBtn" className="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Step (1 day)">
 												<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
 														<path d="M8 5v14l8-7-8-7zm8 0v14h2V5h-2z"/>
 												</svg>
 										</button>
-										<button id="yearBtn" class="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Step (1 year)">
+										<button id="yearBtn" className="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Step (1 year)">
 												<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
 														<path d="M4 5v14l8-7-8-7zm8 0v14l8-7-8-7z"/>
 												</svg>
 										</button>
-										<button id="resetBtn" class="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Reset">
+										<button id="resetBtn" className="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Reset">
 												<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
 														<path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
 												</svg>
 										</button>
 										
-										<div class="flex items-center space-x-2 ml-4 border-l border-gray-600 pl-4">
-												<span class="text-sm text-gray-400">Speed:</span>
-												<input id="speedControl" type="range" min="1" max="10" value="1" class="w-24"></input>
-												<span id="speedValue" class="text-sm w-8 text-gray-300">1x</span>
+										<div className="flex items-center space-x-2 ml-4 border-l border-gray-600 pl-4">
+												<span className="text-sm text-gray-400">Speed:</span>
+												<input id="speedControl" type="range" min="1" max="10" defaultValue="1" className="w-24" />
+												<span id="speedValue" className="text-sm w-8 text-gray-300">1x</span>
 										</div>
 								</div>
 								
-								<div class="flex items-center space-x-6 text-sm">
-										<div class="flex items-center space-x-2">
-												<span class="text-gray-400">Bamboo:</span>
-												<span id="bambooHeight" class="text-white">0m</span>
+								<div className="flex items-center space-x-6 text-sm">
+										<div className="flex items-center space-x-2">
+												<span className="text-gray-400">Bamboo:</span>
+												<span id="bambooHeight" className="text-white">0m</span>
 										</div>
-										<div class="flex items-center space-x-2">
-												<span class="text-gray-400">Coffee:</span>
-												<span id="coffeeHeight" class="text-white">0m</span>
+										<div className="flex items-center space-x-2">
+												<span className="text-gray-400">Coffee:</span>
+												<span id="coffeeHeight" className="text-white">0m</span>
 										</div>
-										<div class="flex items-center space-x-2">
-												<span class="text-gray-400">Harvested:</span>
-												<span id="harvested" class="text-white">0</span>
+										<div className="flex items-center space-x-2">
+												<span className="text-gray-400">Harvested:</span>
+												<span id="harvested" className="text-white">0</span>
 										</div>
-										<div class="flex items-center space-x-2">
-												<span class="text-gray-400">Value:</span>
-												<span id="value" class="text-white">$0</span>
+										<div className="flex items-center space-x-2">
+												<span className="text-gray-400">Value:</span>
+												<span id="value" className="text-white">$0</span>
 										</div>
 								</div>
 						</div>
 				</div>
 
-				<div class="flex-1 flex flex-col">
-						<main class="flex-1 flex flex-col">
-								<div class="bg-gray-800 border-b border-gray-700">
-										<div class="flex">
-												<button data-tab="3d" class="px-6 py-3 hover:bg-gray-700 transition border-b-2 border-transparent">
+				<div className="flex-1 flex flex-col">
+						<main className="flex-1 flex flex-col">
+								<div className="bg-gray-800 border-b border-gray-700">
+										<div className="flex">
+												<button data-tab="3d" className="px-6 py-3 hover:bg-gray-700 transition border-b-2 border-transparent">
 														3D View
 												</button>
-												<button data-tab="stats" class="px-6 py-3 hover:bg-gray-700 transition border-b-2 border-transparent">
+												<button data-tab="stats" className="px-6 py-3 hover:bg-gray-700 transition border-b-2 border-transparent">
 														Statistics
 												</button>
-												<button data-tab="config" class="px-6 py-3 hover:bg-gray-700 transition border-b-2 border-transparent">
+												<button data-tab="config" className="px-6 py-3 hover:bg-gray-700 transition border-b-2 border-transparent">
 														Configuration
 												</button>
 										</div>
 								</div>
 
-								<div class="flex-1 relative">
-										<div ref={ref} data-content="3d" class="absolute inset-0">
-												<div id="threejs-container" class="w-full h-full"></div>
+								<div className="flex-1 relative">
+										<div ref={ref} data-content="3d" className="absolute inset-0">
+												<div id="threejs-container" className="w-full h-full"></div>
 										</div>
-										<div data-content="stats" class="absolute inset-0 hidden p-4 overflow-y-auto">
-												<canvas id="statsCanvas" class="w-full bg-gray-900 rounded"></canvas>
+										<div data-content="stats" className="absolute inset-0 hidden p-4 overflow-y-auto">
+												<canvas id="statsCanvas" className="w-full bg-gray-900 rounded"></canvas>
 										</div>
-										<div data-content="config" class="absolute inset-0 hidden p-4 overflow-y-auto">
+										<div data-content="config" className="absolute inset-0 hidden p-4 overflow-y-auto">
 												<div id="configPanel"></div>
 										</div>
 								</div>
