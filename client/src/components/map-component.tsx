@@ -83,7 +83,7 @@ export default function MapComponent({
   // Constants - adjusted based on view mode
   const CAMERA_NEAR_CLIP = viewMode === "globe" ? 1 : 200;
   const CAMERA_FAR_CLIP = viewMode === "globe" ? 160000000 : 2600000;
-  const CAMERA_MIN_DISTANCE = viewMode === "globe" ? 500 : 500;
+  const CAMERA_MIN_DISTANCE = viewMode === "globe" ? EARTH_RADIUS * 1.1 : 500; // Minimum 10% above Earth surface
   const CAMERA_MAX_DISTANCE = viewMode === "globe" ? 160000000 : 2000000;
   const EARTH_RADIUS = 6378160;
 
@@ -356,6 +356,9 @@ export default function MapComponent({
         if (viewMode === "globe") {
           controls = new GlobeControls(scene, camera, renderer.domElement);
           controls.enableDamping = true;
+          // Set minimum and maximum distance for globe controls
+          controls.minDistance = CAMERA_MIN_DISTANCE;
+          controls.maxDistance = CAMERA_MAX_DISTANCE;
         } else {
           controls = new OrbitControls(camera, renderer.domElement);
           controls.minDistance = CAMERA_MIN_DISTANCE;
