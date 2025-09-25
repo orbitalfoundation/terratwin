@@ -65,7 +65,7 @@ app.use((req, res, next) => {
   // Try to use reusePort if supported (mainly Linux)
   const listenOptions: any = {
     port,
-    host: "127.0.0.1",
+    host: "0.0.0.0",
   };
   
   // Only add reusePort on Linux where it's supported

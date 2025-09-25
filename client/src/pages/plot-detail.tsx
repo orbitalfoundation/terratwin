@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Plot } from "@shared/schema";
 
+import { BambooSim } from "@/bamboo-sim/BambooSim";
+
 export default function PlotDetail() {
   const { id } = useParams();
   const [, setLocation] = useLocation();
@@ -168,19 +170,7 @@ export default function PlotDetail() {
         {/* Map and Details */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Simulation */}
-          <Card className="bg-card border-border">
-            <CardContent className="p-6">
-              <div className="rounded-lg overflow-hidden">
-                <iframe 
-                  src="/standalone-sim/index.html"
-                  className="w-full h-[768px] border-0 rounded-lg"
-                  title="Bamboo Plot Simulation"
-                  data-testid="plot-simulation-iframe"
-                  sandbox="allow-scripts allow-same-origin"
-                />
-              </div>
-            </CardContent>
-          </Card>
+          <BambooSim/>
 
           {/* Plot Details */}
           <div className="space-y-6">
