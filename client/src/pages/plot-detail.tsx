@@ -167,10 +167,13 @@ export default function PlotDetail() {
           </Card>
         </div>
 
-        {/* Map and Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="w-full bg-gray-200">
           {/* Simulation */}
           <BambooSim/>
+        </div>
+
+        {/* Map and Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           {/* Plot Details */}
           <div className="space-y-6">

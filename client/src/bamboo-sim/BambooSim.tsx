@@ -1,64 +1,53 @@
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
 
-//import { BambooSimApp } from './ui/app.js';
+import { deepClone } from './utils/deepClone.js';
+import { sys } from './utils/sys.js';
+import { prototypical_plot } from './prototypes/plot.js';
+import { volume_service } from './services/volume.js';
+import { dem_service } from './services/dem.js';
 
-function setupThree(domElement) {
+let started = false
+let demVolume = null
 
-	if(domElement.renderer) return
+async function loadDEM() {
 
-	const renderer = new THREE.WebGLRenderer({ antialias: true });
-	domElement.appendChild(renderer.domElement);
-	domElement.renderer = renderer
+  console.log('BambooSimApp: Loading DEM data...');
+  
+  try {
+      // Load DEM for the plot area (Grand Canyon for now)
+      demVolume = await dem_service.getDemVolume({
+          bounds: {
+              north: 36.063,
+              south: 36.053,
+              east: -112.103,
+              west: -112.113
+          },
+          position: [50, 0, 50],
+          sceneSize: [100, 100],  // Match plot size
+          heightScale: 0.01,
+          includeSatellite: true  // Enable satellite imagery
+      });
+      
+      if (demVolume) {
+          console.log('BambooSimApp: Sending DEM volume to sys()');
+          sys(demVolume);
+          console.log('BambooSimApp: DEM loaded successfully');
+          
+          // Set camera to center on plot
+          sys({
+              id: 'camera-target',
+              volume: {
+                  shape: 'camera',
+                  xyz: [50, 0, 50] // Center of the 100x100 plot
+              }
+          });
+      } else {
+          console.error('BambooSimApp: DEM volume was null');
+      }
+  } catch (error) {
+      console.error('BambooSimApp: Failed to load DEM:', error);
+  }
 
-	const scene = new THREE.Scene();
-	const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
-	camera.position.set(0, 0, 3);
-
-	const mesh = new THREE.Mesh(
-		new THREE.BoxGeometry(1, 1, 1),
-		new THREE.MeshStandardMaterial({ color: 0x6699ff })
-	);
-	scene.add(mesh);
-
-	const light = new THREE.DirectionalLight(0xffffff, 1.2);
-	light.position.set(1, 2, 3);
-	scene.add(light);
-
-	let raf = 0;
-	const resize = () => {
-		const { width, height } = domElement.getBoundingClientRect();
-		renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-		renderer.setSize(width, height, false);
-		camera.aspect = width / height || 1;
-		camera.updateProjectionMatrix();
-	};
-	resize();
-	window.addEventListener("resize", resize);
-
-	let t0 = performance.now();
-	const loop = (t: number) => {
-		const dt = (t - t0) / 1000;
-		t0 = t;
-		mesh.rotation.y += dt;  // animate
-		renderer.render(scene, camera);
-		raf = requestAnimationFrame(loop);
-	};
-	raf = requestAnimationFrame(loop);
-
-	// Cleanup
-	return () => {
-		cancelAnimationFrame(raf);
-		window.removeEventListener("resize", resize);
-		renderer.dispose();
-		renderer.domElement.remove();
-		scene.traverse(obj => {
-			if ((obj as THREE.Mesh).geometry) (obj as THREE.Mesh).geometry.dispose?.();
-			const mat = (obj as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
-			if (Array.isArray(mat)) mat.forEach(m => m.dispose?.());
-			else mat?.dispose?.();
-		});
-	};
 }
 
 export function BambooSim() {
@@ -66,8 +55,15 @@ export function BambooSim() {
 
 	useEffect(() => {
 		if (!ref.current) return;
-		const cleanup = setupThree(ref.current);
-		return cleanup;
+		if (started) return
+		started = true
+
+    console.log('BambooSimApp: Initializing volume service...');
+    volume_service.domElement = ref.current
+    sys(volume_service);
+
+    loadDEM()
+
 	}, []);
 
 	return (
@@ -147,7 +143,15 @@ export function BambooSim() {
 								</div>
 
 								<div className="flex-1 relative">
-										<div ref={ref} data-content="3d" className="absolute inset-0">
+										<div ref={ref} data-content="3d" className="absolute inset-0"
+ style={{
+    position: 'relative',
+    width: "100%",
+    height: "100%",
+    overflow: 'hidden'
+  }}
+
+										>
 												<div id="threejs-container" className="w-full h-full"></div>
 										</div>
 										<div data-content="stats" className="absolute inset-0 hidden p-4 overflow-y-auto">

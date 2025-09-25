@@ -6,6 +6,7 @@ export const volume_service = {
 	kind: 'service',
 	
 	// Three.js components
+	domElement: null,
 	scene: null,
 	camera: null,
 	renderer: null,
@@ -31,21 +32,38 @@ export const volume_service = {
 		this.camera.lookAt(50, 0, 50);
 		
 		// Create renderer
-		this.renderer = new THREE.WebGLRenderer({ antialias: true });
+		let renderer = this.renderer = new THREE.WebGLRenderer({ antialias: true });
 		this.renderer.shadowMap.enabled = true;
-		
+
 		// Get container
-		const container = document.getElementById('threejs-container');
-		if (container) {
-			const rect = container.getBoundingClientRect();
-			this.renderer.setSize(rect.width, rect.height);
-			container.appendChild(this.renderer.domElement);
-		} else {
-			// Fallback to body
-			this.renderer.setSize(window.innerWidth, window.innerHeight);
-			document.body.appendChild(this.renderer.domElement);
-		}
-		
+		const host = this.domElement
+
+
+  // put the canvas INSIDE the container
+  host.appendChild(renderer.domElement);
+
+  // make canvas fill the host
+  Object.assign(renderer.domElement.style, {
+    position: 'absolute',
+    inset: '0',
+    width: '100%',
+    height: '100%',
+  });
+  Object.assign(host.style, {
+    position: 'relative',
+    overflow: 'hidden',
+  });
+
+  const resize = () => {
+    const { width, height } = host.getBoundingClientRect();
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setSize(width, height, false);
+    // update camera.aspect etc...
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+
 		// Add controls
 		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 		this.controls.enableDamping = true;
@@ -68,7 +86,8 @@ export const volume_service = {
 		// Add axes helper (red = X, green = Y, blue = Z)
 		const axesHelper = new THREE.AxesHelper(50); // 50 units long
 		this.scene.add(axesHelper);
-		
+
+/*		
 		// Handle window resize
 		window.addEventListener('resize', () => {
 			const container = document.getElementById('threejs-container');
@@ -83,7 +102,7 @@ export const volume_service = {
 				this.renderer.setSize(window.innerWidth, window.innerHeight);
 			}
 		});
-		
+*/		
 		// Start render loop
 		this.animate();
 	},
