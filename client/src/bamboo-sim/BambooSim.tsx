@@ -250,7 +250,7 @@ export function BambooSim() {
 
   return (
                 <div className="flex flex-col h-screen">
-                                <div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
+                                <div className="bg-secondary border-b border-border px-4 py-3">
                                                 <div className="container mx-auto flex items-center justify-between">
 
                                                                 <div className="flex items-center space-x-2">
@@ -280,37 +280,37 @@ export function BambooSim() {
                                                                                                 </svg>
                                                                                 </button>
                                                                                 
-                                                                                <div className="flex items-center space-x-2 ml-4 border-l border-gray-600 pl-4">
-                                                                                                <span className="text-sm text-gray-400">Speed:</span>
+                                                                                <div className="flex items-center space-x-2 ml-4 border-l border-border pl-4">
+                                                                                                <span className="text-sm text-muted-foreground">Speed:</span>
                                                                                                 <input type="range" min="1" max="10" value={speed} onChange={handleSpeedChange} className="w-24" />
-                                                                                                <span className="text-sm w-8 text-gray-300">{speed}x</span>
+                                                                                                <span className="text-sm w-8 text-foreground">{speed}x</span>
                                                                                 </div>
                                                                 </div>
                                                                 
                                                                 <div className="flex items-center space-x-6 text-sm">
                                                                                 <div className="flex items-center space-x-2">
-                                                                                                <span className="text-gray-400">Day:</span>
-                                                                                                <span className="text-white">{currentDay}</span>
+                                                                                                <span className="text-muted-foreground">Day:</span>
+                                                                                                <span className="text-foreground">{currentDay}</span>
                                                                                 </div>
                                                                                 <div className="flex items-center space-x-2">
-                                                                                                <span className="text-gray-400">Year:</span>
-                                                                                                <span className="text-white">{currentYear}</span>
+                                                                                                <span className="text-muted-foreground">Year:</span>
+                                                                                                <span className="text-foreground">{currentYear}</span>
                                                                                 </div>
                                                                                 <div className="flex items-center space-x-2">
-                                                                                                <span className="text-gray-400">Bamboo:</span>
-                                                                                                <span className="text-white">{stats.bambooHeight}m</span>
+                                                                                                <span className="text-muted-foreground">Bamboo:</span>
+                                                                                                <span className="text-foreground">{stats.bambooHeight}m</span>
                                                                                 </div>
                                                                                 <div className="flex items-center space-x-2">
-                                                                                                <span className="text-gray-400">Coffee:</span>
-                                                                                                <span className="text-white">{stats.coffeeHeight}m</span>
+                                                                                                <span className="text-muted-foreground">Coffee:</span>
+                                                                                                <span className="text-foreground">{stats.coffeeHeight}m</span>
                                                                                 </div>
                                                                                 <div className="flex items-center space-x-2">
-                                                                                                <span className="text-gray-400">Harvested:</span>
-                                                                                                <span className="text-white">{stats.harvested}</span>
+                                                                                                <span className="text-muted-foreground">Harvested:</span>
+                                                                                                <span className="text-foreground">{stats.harvested}</span>
                                                                                 </div>
                                                                                 <div className="flex items-center space-x-2">
-                                                                                                <span className="text-gray-400">Value:</span>
-                                                                                                <span className="text-white">${stats.value}</span>
+                                                                                                <span className="text-muted-foreground">Value:</span>
+                                                                                                <span className="text-foreground">${stats.value}</span>
                                                                                 </div>
                                                                 </div>
                                                 </div>
@@ -318,17 +318,17 @@ export function BambooSim() {
 
                                 <div className="flex-1 flex flex-col">
                                                 <main className="flex-1 flex flex-col">
-                                                                <div className="bg-gray-800 border-b border-gray-700">
+                                                                <div className="bg-secondary border-b border-border">
                                                                                 <div className="flex">
                                                                                                 <button 
                                                                                                         onClick={() => handleTabChange('3d')} 
-                                                                                                        className={`px-6 py-3 hover:bg-gray-700 transition border-b-2 ${activeTab === '3d' ? 'border-blue-500' : 'border-transparent'}`}
+                                                                                                        className={`px-6 py-3 hover:bg-accent hover:text-accent-foreground transition border-b-2 ${activeTab === '3d' ? 'border-primary' : 'border-transparent'}`}
                                                                                                 >
                                                                                                                 3D View
                                                                                                 </button>
                                                                                                 <button 
                                                                                                         onClick={() => handleTabChange('stats')} 
-                                                                                                        className={`px-6 py-3 hover:bg-gray-700 transition border-b-2 ${activeTab === 'stats' ? 'border-blue-500' : 'border-transparent'}`}
+                                                                                                        className={`px-6 py-3 hover:bg-accent hover:text-accent-foreground transition border-b-2 ${activeTab === 'stats' ? 'border-primary' : 'border-transparent'}`}
                                                                                                 >
                                                                                                                 Statistics
                                                                                                 </button>
@@ -350,61 +350,61 @@ export function BambooSim() {
                                                                                                 />
                                                                                 </div>
                                                                                 <div className={`absolute inset-0 p-4 overflow-y-auto ${activeTab === 'stats' ? '' : 'hidden'}`} data-content="stats">
-                                                                                                <div className="bg-gray-900 rounded p-6">
-                                                                                                                <h3 className="text-xl font-bold text-white mb-4">Simulation Statistics</h3>
+                                                                                                <div className="bg-card border border-border rounded p-6">
+                                                                                                                <h3 className="text-xl font-bold text-card-foreground mb-4">Simulation Statistics</h3>
                                                                                                                 {simRef.current?.plot?.stats ? (
                                                                                                                                 <div className="overflow-x-auto">
-                                                                                                                                                <table className="w-full text-sm text-gray-300">
+                                                                                                                                                <table className="w-full text-sm text-card-foreground">
                                                                                                                                                                 <thead>
-                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                <tr className="border-b border-border">
                                                                                                                                                                                                 <th className="text-left py-2 px-4">Metric</th>
                                                                                                                                                                                                 <th className="text-right py-2 px-4">Current Value</th>
                                                                                                                                                                                                 <th className="text-right py-2 px-4">Unit</th>
                                                                                                                                                                                 </tr>
                                                                                                                                                                 </thead>
                                                                                                                                                                 <tbody>
-                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                <tr className="border-b border-border">
                                                                                                                                                                                                 <td className="py-2 px-4">Current Day</td>
                                                                                                                                                                                                 <td className="text-right py-2 px-4">{currentDay}</td>
-                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">days</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-muted-foreground">days</td>
                                                                                                                                                                                 </tr>
-                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                <tr className="border-b border-border">
                                                                                                                                                                                                 <td className="py-2 px-4">Current Year</td>
                                                                                                                                                                                                 <td className="text-right py-2 px-4">{currentYear.toFixed(1)}</td>
-                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">years</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-muted-foreground">years</td>
                                                                                                                                                                                 </tr>
-                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                <tr className="border-b border-border">
                                                                                                                                                                                                 <td className="py-2 px-4">Average Bamboo Height</td>
                                                                                                                                                                                                 <td className="text-right py-2 px-4 text-green-400">{stats.bambooHeight}</td>
-                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">m</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-muted-foreground">m</td>
                                                                                                                                                                                 </tr>
-                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                <tr className="border-b border-border">
                                                                                                                                                                                                 <td className="py-2 px-4">Average Coffee Height</td>
                                                                                                                                                                                                 <td className="text-right py-2 px-4 text-purple-400">{stats.coffeeHeight}</td>
-                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">m</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-muted-foreground">m</td>
                                                                                                                                                                                 </tr>
-                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                <tr className="border-b border-border">
                                                                                                                                                                                                 <td className="py-2 px-4">Total Harvested</td>
                                                                                                                                                                                                 <td className="text-right py-2 px-4 text-yellow-400">{stats.harvested}</td>
-                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">units</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-muted-foreground">units</td>
                                                                                                                                                                                 </tr>
-                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                <tr className="border-b border-border">
                                                                                                                                                                                                 <td className="py-2 px-4">Total Economic Value</td>
                                                                                                                                                                                                 <td className="text-right py-2 px-4 text-blue-400">${stats.value.toLocaleString()}</td>
-                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">USD</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-muted-foreground">USD</td>
                                                                                                                                                                                 </tr>
                                                                                                                                                                                 {simRef.current?.plot?.stats?.cumulativeCO2 && (
-                                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                                <tr className="border-b border-border">
                                                                                                                                                                                                                 <td className="py-2 px-4">CO2 Sequestered</td>
                                                                                                                                                                                                                 <td className="text-right py-2 px-4 text-indigo-400">{simRef.current.plot.stats.cumulativeCO2.toFixed(1)}</td>
-                                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">kg</td>
+                                                                                                                                                                                                                <td className="text-right py-2 px-4 text-muted-foreground">kg</td>
                                                                                                                                                                                                 </tr>
                                                                                                                                                                                 )}
                                                                                                                                                                 </tbody>
                                                                                                                                                                 </table>
                                                                                                                                                 </div>
                                                                                                                 ) : (
-                                                                                                                                <div className="text-center py-8 text-gray-400">
+                                                                                                                                <div className="text-center py-8 text-muted-foreground">
                                                                                                                                                 <p>No simulation data yet. Start the simulation to see statistics.</p>
                                                                                                                                 </div>
                                                                                                                 )}
