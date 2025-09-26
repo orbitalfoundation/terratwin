@@ -41,8 +41,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update plot
-  app.patch("/api/plots/:id", async (req, res) => {
+  // Update plot (support both PATCH and PUT)
+  const updatePlotHandler = async (req: any, res: any) => {
     try {
       const validatedData = insertPlotSchema.partial().parse(req.body);
       const plot = await storage.updatePlot(req.params.id, validatedData);
@@ -56,7 +56,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.status(500).json({ message: "Failed to update plot" });
     }
-  });
+  };
+
+  app.patch("/api/plots/:id", updatePlotHandler);
+  app.put("/api/plots/:id", updatePlotHandler);
 
   // Delete plot
   app.delete("/api/plots/:id", async (req, res) => {

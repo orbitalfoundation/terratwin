@@ -48,7 +48,7 @@ export default function Dashboard() {
             <div className="h-8 bg-muted rounded w-1/4 mb-2"></div>
             <div className="h-4 bg-muted rounded w-1/3"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="animate-pulse">
                 <div className="h-24 bg-muted rounded-lg"></div>
@@ -84,9 +84,9 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6">
           <Card className="bg-card border-border">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="text-2xl font-semibold text-primary" data-testid="text-total-plots">
                 {totalPlots}
               </div>
@@ -94,7 +94,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
           <Card className="bg-card border-border">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="text-2xl font-semibold text-primary" data-testid="text-total-area">
                 {totalArea.toLocaleString()} m²
               </div>
@@ -102,7 +102,7 @@ export default function Dashboard() {
             </CardContent>
           </Card>
           <Card className="bg-card border-border">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="text-2xl font-semibold text-primary" data-testid="text-active-plots">
                 {activePlots}
               </div>

@@ -77,7 +77,7 @@ export default function PlotDetail() {
             <div className="h-8 bg-muted rounded w-1/4 mb-2"></div>
             <div className="h-4 bg-muted rounded w-1/3"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="animate-pulse">
                 <div className="h-24 bg-muted rounded-lg"></div>
@@ -130,9 +130,9 @@ export default function PlotDetail() {
         </div>
 
         {/* Plot Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
           <Card className="bg-card border-border">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="text-sm text-muted-foreground">Status</div>
               <div className="mt-2">
                 <span className={`text-xs px-2 py-1 rounded ${getStatusColor(plot.status)}`} data-testid="status-plot-detail">
@@ -142,7 +142,7 @@ export default function PlotDetail() {
             </CardContent>
           </Card>
           <Card className="bg-card border-border">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="text-sm text-muted-foreground">Area</div>
               <div className="text-lg font-semibold mt-1 text-primary" data-testid="text-plot-area">
                 {plot.area} m²
@@ -150,7 +150,7 @@ export default function PlotDetail() {
             </CardContent>
           </Card>
           <Card className="bg-card border-border">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="text-sm text-muted-foreground">Bamboo Type</div>
               <div className="text-lg font-semibold mt-1 text-primary" data-testid="text-plot-bamboo-type">
                 {plot.bambooType}
@@ -158,11 +158,95 @@ export default function PlotDetail() {
             </CardContent>
           </Card>
           <Card className="bg-card border-border">
-            <CardContent className="p-6">
+            <CardContent className="p-4 md:p-6">
               <div className="text-sm text-muted-foreground">Last Updated</div>
               <div className="text-lg font-semibold mt-1 text-primary" data-testid="text-plot-last-updated">
                 {formatDate(plot.updatedAt)}
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Enhanced Statistics Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          {/* Plant Height */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 md:p-6">
+              <div className="text-sm text-muted-foreground">Plant Height</div>
+              <div className="text-lg font-semibold mt-1 text-primary" data-testid="text-plant-height">
+                {plot.bambooType.includes('Giant') ? '2.1m' : '0.8m'}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Max 25m by year 3</div>
+            </CardContent>
+          </Card>
+          
+          {/* Bamboo Clumps */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 md:p-6">
+              <div className="text-sm text-muted-foreground">Bamboo Clumps</div>
+              <div className="text-lg font-semibold mt-1 text-primary" data-testid="text-bamboo-clumps">
+                {Math.round((plot.area / 10000) * 150)} clumps
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">{Math.round(plot.area / 36)} clumps in {(plot.area / 10000).toFixed(2)} ha</div>
+            </CardContent>
+          </Card>
+          
+          {/* Carbon Sequestration */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 md:p-6">
+              <div className="text-sm text-muted-foreground">Carbon Sequestration</div>
+              <div className="text-lg font-semibold mt-1 text-primary" data-testid="text-carbon-sequestration">
+                {plot.status === 'active' ? '2.5' : '0.0'} t CO2e/ha/yr
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Morindan Research Rate</div>
+            </CardContent>
+          </Card>
+          
+          {/* Carbon Stock */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 md:p-6">
+              <div className="text-sm text-muted-foreground">Carbon Stock</div>
+              <div className="text-lg font-semibold mt-1 text-primary" data-testid="text-carbon-stock">
+                {plot.status === 'active' ? '15.6' : '0.0'} t C/ha
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">Max: 234.46 t C/ha at maturity</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Economic Projections */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+          {/* Projected Economic Value */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 md:p-6">
+              <div className="text-sm text-muted-foreground">Projected Economic Value</div>
+              <div className="text-xl font-bold mt-1 text-accent" data-testid="text-economic-value">
+                ${plot.status === 'active' ? Math.round((plot.area / 10000) * 2500).toLocaleString() : '0'}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">per hectare: $2,500</div>
+            </CardContent>
+          </Card>
+          
+          {/* Carbon Revenue */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 md:p-6">
+              <div className="text-sm text-muted-foreground">Carbon Revenue</div>
+              <div className="text-xl font-bold mt-1 text-accent" data-testid="text-carbon-revenue">
+                ${plot.status === 'active' ? Math.round((plot.area / 10000) * 2.5 * 30).toLocaleString() : '0'}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">{plot.status === 'active' ? (plot.area / 10000 * 2.5).toFixed(1) : '0.0'} credits @ $30/tonne</div>
+            </CardContent>
+          </Card>
+          
+          {/* Harvest Revenue */}
+          <Card className="bg-card border-border">
+            <CardContent className="p-4 md:p-6">
+              <div className="text-sm text-muted-foreground">Harvest Revenue</div>
+              <div className="text-xl font-bold mt-1 text-accent" data-testid="text-harvest-revenue">
+                ${plot.status === 'active' ? Math.round((plot.area / 10000) * 150 * 10 * 12).toLocaleString() : '0'}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">{plot.status === 'active' ? Math.round((plot.area / 10000) * 150 * 10) : 0} poles at $12/pole</div>
+              <div className="text-xs text-muted-foreground">Harvesting begins at year {plot.harvestYears || 5}</div>
             </CardContent>
           </Card>
         </div>
@@ -180,7 +264,7 @@ export default function PlotDetail() {
 
             {plot.notes && (
               <Card className="bg-card border-border">
-                <CardContent className="p-6">
+                <CardContent className="p-4 md:p-6">
                   <h3 className="text-lg font-medium mb-4 text-primary">Management Notes</h3>
                   <p className="text-muted-foreground text-sm" data-testid="text-plot-notes">
                     {plot.notes}
