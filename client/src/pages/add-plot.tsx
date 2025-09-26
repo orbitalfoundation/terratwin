@@ -82,19 +82,19 @@ export default function AddPlot() {
         soilAcidity: existingPlot.soilAcidity || 7.0,
         soilFertility: existingPlot.soilFertility || 50,
         // Pests
-        pestBambooBorer: existingPlot.pestBambooBorer || "false",
-        pestAphids: existingPlot.pestAphids || "false",
-        pestFungalPathogens: existingPlot.pestFungalPathogens || "false",
+        pestBambooBorer: (existingPlot.pestBambooBorer || "false") as "true" | "false",
+        pestAphids: (existingPlot.pestAphids || "false") as "true" | "false",
+        pestFungalPathogens: (existingPlot.pestFungalPathogens || "false") as "true" | "false",
         // Intervention
-        interventionWeeding: existingPlot.interventionWeeding || "false",
-        interventionMulching: existingPlot.interventionMulching || "false",
-        interventionFertilization: existingPlot.interventionFertilization || "false",
-        interventionPestControl: existingPlot.interventionPestControl || "false",
+        interventionWeeding: (existingPlot.interventionWeeding || "false") as "true" | "false",
+        interventionMulching: (existingPlot.interventionMulching || "false") as "true" | "false",
+        interventionFertilization: (existingPlot.interventionFertilization || "false") as "true" | "false",
+        interventionPestControl: (existingPlot.interventionPestControl || "false") as "true" | "false",
         // Intercropping
-        intercroppingLegumes: existingPlot.intercroppingLegumes || "false",
-        intercroppingHerbs: existingPlot.intercroppingHerbs || "false",
-        intercroppingSpecialtyCrops: existingPlot.intercroppingSpecialtyCrops || "false",
-        intercroppingAnimals: existingPlot.intercroppingAnimals || "false",
+        intercroppingLegumes: (existingPlot.intercroppingLegumes || "false") as "true" | "false",
+        intercroppingHerbs: (existingPlot.intercroppingHerbs || "false") as "true" | "false",
+        intercroppingSpecialtyCrops: (existingPlot.intercroppingSpecialtyCrops || "false") as "true" | "false",
+        intercroppingAnimals: (existingPlot.intercroppingAnimals || "false") as "true" | "false",
       });
     }
   }, [existingPlot, isEditMode, reset]);

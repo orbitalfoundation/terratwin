@@ -80,19 +80,19 @@ export const insertPlotSchema = createInsertSchema(plots).omit({
   soilAcidity: z.number().min(0).max(14).optional(),
   soilFertility: z.number().min(0).max(100).optional(),
   // Pests (stored as text, converted to/from boolean)
-  pestBambooBorer: z.string().optional(),
-  pestAphids: z.string().optional(),
-  pestFungalPathogens: z.string().optional(),
+  pestBambooBorer: z.enum(["true", "false"]).optional(),
+  pestAphids: z.enum(["true", "false"]).optional(),
+  pestFungalPathogens: z.enum(["true", "false"]).optional(),
   // Intervention (stored as text, converted to/from boolean)
-  interventionWeeding: z.string().optional(),
-  interventionMulching: z.string().optional(),
-  interventionFertilization: z.string().optional(),
-  interventionPestControl: z.string().optional(),
+  interventionWeeding: z.enum(["true", "false"]).optional(),
+  interventionMulching: z.enum(["true", "false"]).optional(),
+  interventionFertilization: z.enum(["true", "false"]).optional(),
+  interventionPestControl: z.enum(["true", "false"]).optional(),
   // Intercropping (stored as text, converted to/from boolean)
-  intercroppingLegumes: z.string().optional(),
-  intercroppingHerbs: z.string().optional(),
-  intercroppingSpecialtyCrops: z.string().optional(),
-  intercroppingAnimals: z.string().optional(),
+  intercroppingLegumes: z.enum(["true", "false"]).optional(),
+  intercroppingHerbs: z.enum(["true", "false"]).optional(),
+  intercroppingSpecialtyCrops: z.enum(["true", "false"]).optional(),
+  intercroppingAnimals: z.enum(["true", "false"]).optional(),
 });
 
 export type InsertPlot = z.infer<typeof insertPlotSchema>;
