@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { insertPlotSchema, type InsertPlot, type Plot } from "@shared/schema";
@@ -62,6 +64,37 @@ export default function AddPlot() {
         bambooType: existingPlot.bambooType,
         status: existingPlot.status as "planning" | "active" | "inactive",
         notes: existingPlot.notes || '',
+        // Species & Schedule
+        speciesDensity: existingPlot.speciesDensity as "low" | "medium" | "high" || "low",
+        harvestYears: existingPlot.harvestYears || 5,
+        harvestRate: existingPlot.harvestRate || 20,
+        // Plot Environment
+        elevation: existingPlot.elevation || 0,
+        slopeFacing: existingPlot.slopeFacing || 0,
+        steepness: existingPlot.steepness || 0,
+        rainfall: existingPlot.rainfall || 0,
+        drainage: existingPlot.drainage || 5000,
+        // Soil Conditions
+        soilSalts: existingPlot.soilSalts || 50,
+        soilNitrogen: existingPlot.soilNitrogen || 50,
+        soilMicrobialMass: existingPlot.soilMicrobialMass || 50,
+        soilEarthworms: existingPlot.soilEarthworms || 50,
+        soilAcidity: existingPlot.soilAcidity || 7.0,
+        soilFertility: existingPlot.soilFertility || 50,
+        // Pests
+        pestBambooBorer: existingPlot.pestBambooBorer || "false",
+        pestAphids: existingPlot.pestAphids || "false",
+        pestFungalPathogens: existingPlot.pestFungalPathogens || "false",
+        // Intervention
+        interventionWeeding: existingPlot.interventionWeeding || "false",
+        interventionMulching: existingPlot.interventionMulching || "false",
+        interventionFertilization: existingPlot.interventionFertilization || "false",
+        interventionPestControl: existingPlot.interventionPestControl || "false",
+        // Intercropping
+        intercroppingLegumes: existingPlot.intercroppingLegumes || "false",
+        intercroppingHerbs: existingPlot.intercroppingHerbs || "false",
+        intercroppingSpecialtyCrops: existingPlot.intercroppingSpecialtyCrops || "false",
+        intercroppingAnimals: existingPlot.intercroppingAnimals || "false",
       });
     }
   }, [existingPlot, isEditMode, reset]);
@@ -258,6 +291,357 @@ export default function AddPlot() {
                     {errors.notes.message}
                   </p>
                 )}
+              </div>
+
+              {/* Species & Schedule Section */}
+              <div className="space-y-4 border-t pt-6">
+                <h3 className="text-lg font-semibold text-primary">Species & Schedule</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="block text-sm font-medium mb-2">Species Density</Label>
+                    <Select onValueChange={(value) => setValue("speciesDensity", value as "low" | "medium" | "high")} data-testid="select-density">
+                      <SelectTrigger className="w-full px-4 py-3 bg-input border-border">
+                        <SelectValue placeholder="Select density" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="harvestYears" className="block text-sm font-medium mb-2">
+                      Harvest in (years)
+                    </Label>
+                    <Input
+                      id="harvestYears"
+                      type="number"
+                      {...register("harvestYears", { valueAsNumber: true })}
+                      className="w-full px-4 py-3 bg-input border-border"
+                      placeholder="5"
+                      data-testid="input-harvest-years"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="harvestRate" className="block text-sm font-medium mb-2">
+                      Harvest Rate (%)
+                    </Label>
+                    <Input
+                      id="harvestRate"
+                      type="number"
+                      {...register("harvestRate", { valueAsNumber: true })}
+                      className="w-full px-4 py-3 bg-input border-border"
+                      placeholder="20"
+                      data-testid="input-harvest-rate"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Plot Environment Section */}
+              <div className="space-y-4 border-t pt-6">
+                <h3 className="text-lg font-semibold text-primary">Plot Environment</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="elevation" className="block text-sm font-medium mb-2">
+                      Elevation (m)
+                    </Label>
+                    <Input
+                      id="elevation"
+                      type="number"
+                      {...register("elevation", { valueAsNumber: true })}
+                      className="w-full px-4 py-3 bg-input border-border"
+                      placeholder="0"
+                      data-testid="input-elevation"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="slopeFacing" className="block text-sm font-medium mb-2">
+                      Slope Facing (°)
+                    </Label>
+                    <Input
+                      id="slopeFacing"
+                      type="number"
+                      {...register("slopeFacing", { valueAsNumber: true })}
+                      className="w-full px-4 py-3 bg-input border-border"
+                      placeholder="0"
+                      data-testid="input-slope-facing"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="steepness" className="block text-sm font-medium mb-2">
+                      Steepness (%)
+                    </Label>
+                    <Input
+                      id="steepness"
+                      type="number"
+                      {...register("steepness", { valueAsNumber: true })}
+                      className="w-full px-4 py-3 bg-input border-border"
+                      placeholder="0"
+                      data-testid="input-steepness"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="rainfall" className="block text-sm font-medium mb-2">
+                      Rainfall (mm/yr)
+                    </Label>
+                    <Input
+                      id="rainfall"
+                      type="number"
+                      {...register("rainfall", { valueAsNumber: true })}
+                      className="w-full px-4 py-3 bg-input border-border"
+                      placeholder="0"
+                      data-testid="input-rainfall"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="drainage" className="block text-sm font-medium mb-2">
+                      Drainage (m³/yr)
+                    </Label>
+                    <Input
+                      id="drainage"
+                      type="number"
+                      {...register("drainage", { valueAsNumber: true })}
+                      className="w-full px-4 py-3 bg-input border-border"
+                      placeholder="5000"
+                      data-testid="input-drainage"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Soil Conditions Section */}
+              <div className="space-y-4 border-t pt-6">
+                <h3 className="text-lg font-semibold text-primary">Soil Conditions</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <Label className="block text-sm font-medium mb-2">
+                      Salts: {watch("soilSalts") || 50}%
+                    </Label>
+                    <Slider
+                      value={[watch("soilSalts") || 50]}
+                      onValueChange={(value) => setValue("soilSalts", value[0])}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                      data-testid="slider-soil-salts"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="block text-sm font-medium mb-2">
+                      Nitrogen: {watch("soilNitrogen") || 50}%
+                    </Label>
+                    <Slider
+                      value={[watch("soilNitrogen") || 50]}
+                      onValueChange={(value) => setValue("soilNitrogen", value[0])}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                      data-testid="slider-soil-nitrogen"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="block text-sm font-medium mb-2">
+                      Microbial Mass: {watch("soilMicrobialMass") || 50}%
+                    </Label>
+                    <Slider
+                      value={[watch("soilMicrobialMass") || 50]}
+                      onValueChange={(value) => setValue("soilMicrobialMass", value[0])}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                      data-testid="slider-soil-microbial-mass"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="block text-sm font-medium mb-2">
+                      Earthworms: {watch("soilEarthworms") || 50}%
+                    </Label>
+                    <Slider
+                      value={[watch("soilEarthworms") || 50]}
+                      onValueChange={(value) => setValue("soilEarthworms", value[0])}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                      data-testid="slider-soil-earthworms"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="soilAcidity" className="block text-sm font-medium mb-2">
+                      Acidity (pH)
+                    </Label>
+                    <Input
+                      id="soilAcidity"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="14"
+                      {...register("soilAcidity", { valueAsNumber: true })}
+                      className="w-full px-4 py-3 bg-input border-border"
+                      placeholder="7.0"
+                      data-testid="input-soil-acidity"
+                    />
+                  </div>
+
+                  <div>
+                    <Label className="block text-sm font-medium mb-2">
+                      Fertility: {watch("soilFertility") || 50}%
+                    </Label>
+                    <Slider
+                      value={[watch("soilFertility") || 50]}
+                      onValueChange={(value) => setValue("soilFertility", value[0])}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                      data-testid="slider-soil-fertility"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pests Section */}
+              <div className="space-y-4 border-t pt-6">
+                <h3 className="text-lg font-semibold text-primary">Pests</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="pestBambooBorer"
+                      checked={watch("pestBambooBorer") === "true"}
+                      onCheckedChange={(checked) => setValue("pestBambooBorer", checked ? "true" : "false")}
+                      data-testid="checkbox-pest-bamboo-borer"
+                    />
+                    <Label htmlFor="pestBambooBorer" className="text-sm">Bamboo Borer</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="pestAphids"
+                      checked={watch("pestAphids") === "true"}
+                      onCheckedChange={(checked) => setValue("pestAphids", checked ? "true" : "false")}
+                      data-testid="checkbox-pest-aphids"
+                    />
+                    <Label htmlFor="pestAphids" className="text-sm">Aphids</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="pestFungalPathogens"
+                      checked={watch("pestFungalPathogens") === "true"}
+                      onCheckedChange={(checked) => setValue("pestFungalPathogens", checked ? "true" : "false")}
+                      data-testid="checkbox-pest-fungal-pathogens"
+                    />
+                    <Label htmlFor="pestFungalPathogens" className="text-sm">Fungal Pathogens</Label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Intervention Section */}
+              <div className="space-y-4 border-t pt-6">
+                <h3 className="text-lg font-semibold text-primary">Intervention</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="interventionWeeding"
+                      checked={watch("interventionWeeding") === "true"}
+                      onCheckedChange={(checked) => setValue("interventionWeeding", checked ? "true" : "false")}
+                      data-testid="checkbox-intervention-weeding"
+                    />
+                    <Label htmlFor="interventionWeeding" className="text-sm">Weeding</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="interventionMulching"
+                      checked={watch("interventionMulching") === "true"}
+                      onCheckedChange={(checked) => setValue("interventionMulching", checked ? "true" : "false")}
+                      data-testid="checkbox-intervention-mulching"
+                    />
+                    <Label htmlFor="interventionMulching" className="text-sm">Mulching</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="interventionFertilization"
+                      checked={watch("interventionFertilization") === "true"}
+                      onCheckedChange={(checked) => setValue("interventionFertilization", checked ? "true" : "false")}
+                      data-testid="checkbox-intervention-fertilization"
+                    />
+                    <Label htmlFor="interventionFertilization" className="text-sm">Fertilization</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="interventionPestControl"
+                      checked={watch("interventionPestControl") === "true"}
+                      onCheckedChange={(checked) => setValue("interventionPestControl", checked ? "true" : "false")}
+                      data-testid="checkbox-intervention-pest-control"
+                    />
+                    <Label htmlFor="interventionPestControl" className="text-sm">Pest Control</Label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Intercropping Section */}
+              <div className="space-y-4 border-t pt-6">
+                <h3 className="text-lg font-semibold text-primary">Intercropping</h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="intercroppingLegumes"
+                      checked={watch("intercroppingLegumes") === "true"}
+                      onCheckedChange={(checked) => setValue("intercroppingLegumes", checked ? "true" : "false")}
+                      data-testid="checkbox-intercropping-legumes"
+                    />
+                    <Label htmlFor="intercroppingLegumes" className="text-sm">Legumes (beans, peas, lentils)</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="intercroppingHerbs"
+                      checked={watch("intercroppingHerbs") === "true"}
+                      onCheckedChange={(checked) => setValue("intercroppingHerbs", checked ? "true" : "false")}
+                      data-testid="checkbox-intercropping-herbs"
+                    />
+                    <Label htmlFor="intercroppingHerbs" className="text-sm">Herbs (ginger, turmeric)</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="intercroppingSpecialtyCrops"
+                      checked={watch("intercroppingSpecialtyCrops") === "true"}
+                      onCheckedChange={(checked) => setValue("intercroppingSpecialtyCrops", checked ? "true" : "false")}
+                      data-testid="checkbox-intercropping-specialty-crops"
+                    />
+                    <Label htmlFor="intercroppingSpecialtyCrops" className="text-sm">Specialty Crops (coffee, cacao, tea)</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="intercroppingAnimals"
+                      checked={watch("intercroppingAnimals") === "true"}
+                      onCheckedChange={(checked) => setValue("intercroppingAnimals", checked ? "true" : "false")}
+                      data-testid="checkbox-intercropping-animals"
+                    />
+                    <Label htmlFor="intercroppingAnimals" className="text-sm">Animals (fowl, pigs)</Label>
+                  </div>
+                </div>
               </div>
             </div>
 

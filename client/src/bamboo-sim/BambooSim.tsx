@@ -6,7 +6,6 @@ import { prototypical_plot } from './prototypes/plot.js';
 import { volume_service } from './services/volume.js';
 import { dem_service } from './services/dem.js';
 import { StatsCanvas } from './ui/stats-canvas.js';
-import { ConfigPanel } from './ui/config-panel.js';
 
 /// just stuffed sim into a class for now
 
@@ -169,7 +168,6 @@ export function BambooSim() {
   const ref = useRef<HTMLDivElement | null>(null);
   const simRef = useRef<BambooSimWrapper | null>(null);
   const statsCanvasRef = useRef<any>(null);
-  const configPanelRef = useRef<any>(null);
   const [speed, setSpeed] = useState(1);
   const [activeTab, setActiveTab] = useState('3d');
   const [stats, setStats] = useState({
@@ -194,7 +192,6 @@ export function BambooSim() {
       }
       // Reset refs
       statsCanvasRef.current = null;
-      configPanelRef.current = null;
     };
   }, []);
 
@@ -228,25 +225,9 @@ export function BambooSim() {
       }, 0);
     }
     
-    // Initialize config panel if switching to config tab  
-    if (tab === 'config' && !configPanelRef.current) {
-      // Use setTimeout to ensure DOM element is rendered
-      setTimeout(() => {
-        const configElement = document.getElementById('configPanel');
-        if (configElement) {
-          configPanelRef.current = new ConfigPanel('configPanel');
-          // Update metrics in config panel
-          updateConfigMetrics();
-        }
-      }, 0);
-    }
-    
     // Update appropriate components when switching
     if (tab === 'stats' && statsCanvasRef.current) {
       updateStats();
-    }
-    if (tab === 'config' && configPanelRef.current) {
-      updateConfigMetrics();
     }
   };
   
@@ -292,32 +273,8 @@ export function BambooSim() {
       statsCanvasRef.current.update(simRef.current.plot.stats, newCurrentDay);
     }
   };
-  
-  const updateConfigMetrics = () => {
-    if (!configPanelRef.current || !simRef.current?.plot) return;
-    
-    let culmCount = 0;
-    let clumpCount = 0;
-    
-    simRef.current.plot.children.forEach((entity: any) => {
-      if (entity.clump) {
-        clumpCount++;
-        culmCount += entity.children.length;
-      }
-    });
-    
-    const metrics = {
-      avgHeight: simRef.current.plot.stats.totalGrowth[simRef.current.plot.stats.totalGrowth.length - 1] || 0,
-      clumps: clumpCount,
-      livePoles: culmCount,
-      harvested: simRef.current.plot.stats.cumulativeHarvest,
-      co2: simRef.current.plot.stats.cumulativeCO2
-    };
-    
-    configPanelRef.current.updateMetrics(metrics);
-  };
 
-        return (
+  return (
                 <div className="flex flex-col h-screen">
                                 <div className="bg-gray-800 border-b border-gray-700 px-4 py-3">
                                                 <div className="container mx-auto flex items-center justify-between">
@@ -401,12 +358,6 @@ export function BambooSim() {
                                                                                                 >
                                                                                                                 Statistics
                                                                                                 </button>
-                                                                                                <button 
-                                                                                                        onClick={() => handleTabChange('config')} 
-                                                                                                        className={`px-6 py-3 hover:bg-gray-700 transition border-b-2 ${activeTab === 'config' ? 'border-blue-500' : 'border-transparent'}`}
-                                                                                                >
-                                                                                                                Configuration
-                                                                                                </button>
                                                                                 </div>
                                                                 </div>
 
@@ -426,9 +377,6 @@ export function BambooSim() {
                                                                                 </div>
                                                                                 <div className={`absolute inset-0 p-4 overflow-y-auto ${activeTab === 'stats' ? '' : 'hidden'}`} data-content="stats">
                                                                                                 <canvas id="statsCanvas" className="w-full bg-gray-900 rounded" style={{height: '400px'}} />
-                                                                                </div>
-                                                                                <div className={`absolute inset-0 p-4 overflow-y-auto ${activeTab === 'config' ? '' : 'hidden'}`}>
-                                                                                                <div id="configPanel"></div>
                                                                                 </div>
                                                                 </div>
                                                 </main>
