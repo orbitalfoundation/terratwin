@@ -5,7 +5,6 @@ import { sys } from './utils/sys.js';
 import { prototypical_plot } from './prototypes/plot.js';
 import { volume_service } from './services/volume.js';
 import { dem_service } from './services/dem.js';
-import { StatsCanvas } from './ui/stats-canvas.js';
 
 /// just stuffed sim into a class for now
 
@@ -167,7 +166,6 @@ class BambooSimWrapper {
 export function BambooSim() {
   const ref = useRef<HTMLDivElement | null>(null);
   const simRef = useRef<BambooSimWrapper | null>(null);
-  const statsCanvasRef = useRef<any>(null);
   const [speed, setSpeed] = useState(1);
   const [activeTab, setActiveTab] = useState('3d');
   const [stats, setStats] = useState({
@@ -190,8 +188,6 @@ export function BambooSim() {
       if (simRef.current) {
         simRef.current.pause(); // Stop any running animations
       }
-      // Reset refs
-      statsCanvasRef.current = null;
     };
   }, []);
 
@@ -211,24 +207,6 @@ export function BambooSim() {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    
-    // Initialize stats canvas if switching to stats tab
-    if (tab === 'stats' && !statsCanvasRef.current) {
-      // Use setTimeout to ensure DOM element is rendered
-      setTimeout(() => {
-        const canvasElement = document.getElementById('statsCanvas');
-        if (canvasElement) {
-          statsCanvasRef.current = new StatsCanvas('statsCanvas');
-          // Update stats immediately when switching to stats tab
-          updateStats();
-        }
-      }, 0);
-    }
-    
-    // Update appropriate components when switching
-    if (tab === 'stats' && statsCanvasRef.current) {
-      updateStats();
-    }
   };
   
   const updateStats = () => {
@@ -268,10 +246,6 @@ export function BambooSim() {
       value: simRef.current.plot.stats.cumulativeValue || 0
     });
     
-    // Update stats canvas if it exists and is on stats tab
-    if (statsCanvasRef.current && activeTab === 'stats') {
-      statsCanvasRef.current.update(simRef.current.plot.stats, newCurrentDay);
-    }
   };
 
   return (
@@ -376,7 +350,65 @@ export function BambooSim() {
                                                                                                 />
                                                                                 </div>
                                                                                 <div className={`absolute inset-0 p-4 overflow-y-auto ${activeTab === 'stats' ? '' : 'hidden'}`} data-content="stats">
-                                                                                                <canvas id="statsCanvas" className="w-full bg-gray-900 rounded" style={{height: '400px'}} />
+                                                                                                <div className="bg-gray-900 rounded p-6">
+                                                                                                                <h3 className="text-xl font-bold text-white mb-4">Simulation Statistics</h3>
+                                                                                                                {simRef.current?.plot?.stats ? (
+                                                                                                                                <div className="overflow-x-auto">
+                                                                                                                                                <table className="w-full text-sm text-gray-300">
+                                                                                                                                                                <thead>
+                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                                <th className="text-left py-2 px-4">Metric</th>
+                                                                                                                                                                                                <th className="text-right py-2 px-4">Current Value</th>
+                                                                                                                                                                                                <th className="text-right py-2 px-4">Unit</th>
+                                                                                                                                                                                </tr>
+                                                                                                                                                                </thead>
+                                                                                                                                                                <tbody>
+                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                                <td className="py-2 px-4">Current Day</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4">{currentDay}</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">days</td>
+                                                                                                                                                                                </tr>
+                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                                <td className="py-2 px-4">Current Year</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4">{currentYear.toFixed(1)}</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">years</td>
+                                                                                                                                                                                </tr>
+                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                                <td className="py-2 px-4">Average Bamboo Height</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-green-400">{stats.bambooHeight}</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">m</td>
+                                                                                                                                                                                </tr>
+                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                                <td className="py-2 px-4">Average Coffee Height</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-purple-400">{stats.coffeeHeight}</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">m</td>
+                                                                                                                                                                                </tr>
+                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                                <td className="py-2 px-4">Total Harvested</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-yellow-400">{stats.harvested}</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">units</td>
+                                                                                                                                                                                </tr>
+                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                                <td className="py-2 px-4">Total Economic Value</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-blue-400">${stats.value.toLocaleString()}</td>
+                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">USD</td>
+                                                                                                                                                                                </tr>
+                                                                                                                                                                                {simRef.current?.plot?.stats?.cumulativeCO2 && (
+                                                                                                                                                                                                <tr className="border-b border-gray-700">
+                                                                                                                                                                                                                <td className="py-2 px-4">CO2 Sequestered</td>
+                                                                                                                                                                                                                <td className="text-right py-2 px-4 text-indigo-400">{simRef.current.plot.stats.cumulativeCO2.toFixed(1)}</td>
+                                                                                                                                                                                                                <td className="text-right py-2 px-4 text-gray-500">kg</td>
+                                                                                                                                                                                                </tr>
+                                                                                                                                                                                )}
+                                                                                                                                                                </tbody>
+                                                                                                                                                                </table>
+                                                                                                                                                </div>
+                                                                                                                ) : (
+                                                                                                                                <div className="text-center py-8 text-gray-400">
+                                                                                                                                                <p>No simulation data yet. Start the simulation to see statistics.</p>
+                                                                                                                                </div>
+                                                                                                                )}
+                                                                                                </div>
                                                                                 </div>
                                                                 </div>
                                                 </main>
