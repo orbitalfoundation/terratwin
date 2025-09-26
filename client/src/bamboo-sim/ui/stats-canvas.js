@@ -270,7 +270,12 @@ export class StatsCanvas {
             container = document.createElement('div');
             container.id = 'statsTable';
             container.className = 'mt-4 bg-gray-800 rounded p-4';
-            statsContent.appendChild(container);
+            if (statsContent) {
+                statsContent.appendChild(container);
+            } else {
+                console.error('StatsCanvas: Cannot find stats content container');
+                return;
+            }
         }
         
         // Get current values (last year or interpolated current)
