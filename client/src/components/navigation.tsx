@@ -13,18 +13,6 @@ export default function Navigation() {
                 TerraTwin
               </div>
             </Link>
-            <div className="hidden md:flex space-x-6">
-              <Link href="/" data-testid="link-dashboard">
-                <span className={`transition-colors ${location === "/" ? "text-primary" : "text-muted-foreground hover:text-primary"}`}>
-                  Dashboard
-                </span>
-              </Link>
-              <Link href="/plots/new" data-testid="link-new-plot">
-                <span className={`transition-colors ${location === "/plots/new" ? "text-primary" : "text-muted-foreground hover:text-primary"}`}>
-                  Add Plot
-                </span>
-              </Link>
-            </div>
           </div>
         </div>
       </div>
