@@ -2,6 +2,8 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPlotSchema } from "@shared/schema";
+import { generateChatResponse } from "./openai-service";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all plots
@@ -89,6 +91,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ cesiumKey: cesiumKey || null });
     } catch (error) {
       res.status(500).json({ message: "Failed to get Cesium key" });
+    }
+  });
+
+  // Chat endpoint for AI assistant
+  const chatRequestSchema = z.object({
+    message: z.string().min(1).max(1000)
+  });
+
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { message } = chatRequestSchema.parse(req.body);
+      const reply = await generateChatResponse(message);
+      res.json({ reply });
+    } catch (error: any) {
+      if (error.name === "ZodError") {
+        return res.status(400).json({ message: "Invalid message format", errors: error.errors });
+      }
+      console.error('Chat API error:', error);
+      res.status(500).json({ message: "Failed to generate AI response" });
     }
   });
 
