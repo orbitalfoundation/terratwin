@@ -97,14 +97,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Chat endpoint for AI assistant
   const chatRequestSchema = z.object({
-    message: z.string().min(1).max(1000)
+    message: z.string().min(1).max(1000),
+    context: z.object({
+      currentPage: z.string(),
+      currentPlotId: z.string().optional(),
+      availablePlots: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        status: z.string()
+      }))
+    }).optional()
   });
 
   app.post("/api/chat", async (req, res) => {
     try {
-      const { message } = chatRequestSchema.parse(req.body);
-      const reply = await generateChatResponse(message);
-      res.json({ reply });
+      const { message, context } = chatRequestSchema.parse(req.body);
+      const agenticResponse = await generateChatResponse(message, context);
+      res.json(agenticResponse);
     } catch (error: any) {
       if (error.name === "ZodError") {
         return res.status(400).json({ message: "Invalid message format", errors: error.errors });

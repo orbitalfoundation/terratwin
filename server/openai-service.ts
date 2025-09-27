@@ -11,13 +11,31 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export interface ChatRequest {
   message: string;
+  context?: {
+    currentPage: string;
+    currentPlotId?: string;
+    availablePlots: Array<{
+      id: string;
+      name: string;
+      status: string;
+    }>;
+  };
 }
 
 export interface ChatResponse {
   reply: string;
 }
 
-export async function generateChatResponse(message: string): Promise<string> {
+export interface AgenticChatResponse {
+  type: 'conversation' | 'action';
+  message: string;
+  action?: {
+    type: 'goto_plot' | 'start_simulation' | 'pause_simulation' | 'reset_simulation';
+    data?: any;
+  };
+}
+
+export async function generateChatResponse(message: string, context?: ChatRequest['context']): Promise<AgenticChatResponse> {
   // Check for API key
   if (!process.env.OPENAI_API_KEY) {
     throw new HttpError(503, 'OpenAI API key not configured. Please add it in Secrets and retry.');
@@ -29,7 +47,45 @@ export async function generateChatResponse(message: string): Promise<string> {
       messages: [
         {
           role: "system",
-          content: "You are a helpful AI assistant for TerraTwin, a bamboo cultivation management platform. You can help users understand their bamboo plots, answer questions about bamboo farming, sustainability, and provide general assistance. Keep responses concise and helpful."
+          content: `You are an agentic AI assistant for TerraTwin, a bamboo cultivation management platform. You can help users understand their bamboo plots, answer questions about bamboo farming, sustainability, and perform actions on their behalf.
+
+CURRENT CONTEXT:
+- Current page: ${context?.currentPage || 'unknown'}
+- Current plot: ${context?.currentPlotId || 'none'}
+- Available plots: ${context?.availablePlots?.map(p => `${p.name} (id: ${p.id}, status: ${p.status})`).join(', ') || 'none'}
+
+AVAILABLE ACTIONS:
+1. goto_plot: Navigate to a specific plot by name or ID
+2. start_simulation: Start the bamboo simulation (only available on plot detail pages)  
+3. pause_simulation: Pause the running simulation (only available on plot detail pages)
+4. reset_simulation: Reset the simulation to initial state (only available on plot detail pages)
+
+RESPONSE FORMAT:
+You must respond with a JSON object in this exact format:
+
+For conversational responses:
+{
+  "type": "conversation",
+  "message": "Your helpful response here"
+}
+
+For actions:
+{
+  "type": "action", 
+  "message": "Explaining what action I'm taking",
+  "action": {
+    "type": "goto_plot|start_simulation|pause_simulation|reset_simulation",
+    "data": {"plotId": "id-here", "plotName": "name-here"}
+  }
+}
+
+IMPORTANT RULES:
+- Always return valid JSON
+- For goto_plot actions, include both plotId and plotName in the data object
+- Only suggest simulation actions when on a plot detail page
+- If user asks to go to a plot that doesn't exist, respond conversationally with available options
+- Be helpful and explain what you're doing when taking actions
+- Keep responses concise but informative`
         },
         {
           role: "user",
@@ -39,7 +95,31 @@ export async function generateChatResponse(message: string): Promise<string> {
       max_completion_tokens: 500
     });
 
-    return response.choices[0].message.content || "I'm sorry, I couldn't generate a response.";
+    const content = response.choices[0].message.content || '{"type": "conversation", "message": "I\'m sorry, I couldn\'t generate a response."}';
+    
+    try {
+      const parsed = JSON.parse(content) as AgenticChatResponse;
+      
+      // Validate the response structure
+      if (!parsed.type || !parsed.message) {
+        throw new Error('Invalid response structure');
+      }
+      
+      if (parsed.type === 'action' && !parsed.action) {
+        throw new Error('Action type response missing action field');
+      }
+      
+      return parsed;
+    } catch (parseError) {
+      console.error('Failed to parse LLM response as JSON:', parseError);
+      console.error('Raw response:', content);
+      
+      // Fallback to conversational response
+      return {
+        type: 'conversation',
+        message: content.replace(/```json|```/g, '').trim() || "I'm sorry, I had trouble processing that request."
+      };
+    }
   } catch (error: any) {
     console.error('OpenAI API error:', error);
     
