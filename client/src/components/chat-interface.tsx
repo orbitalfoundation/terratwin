@@ -47,12 +47,11 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
     onError: (error: any) => {
       let errorMessage = 'Sorry, I encountered an error. Please try again.';
       
-      // Try to extract more specific error message from server response
-      if (error.message && error.message.includes(':')) {
-        const serverMessage = error.message.split(':').slice(1).join(':').trim();
-        if (serverMessage) {
-          errorMessage = serverMessage;
-        }
+      // Use structured error message from improved apiRequest
+      if (error.body?.message) {
+        errorMessage = error.body.message;
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       
       setMessages(prev => [

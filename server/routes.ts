@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPlotSchema } from "@shared/schema";
 import { generateChatResponse } from "./openai-service";
+import { HttpError } from "./http-error";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -108,8 +109,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error.name === "ZodError") {
         return res.status(400).json({ message: "Invalid message format", errors: error.errors });
       }
+      
+      // Handle HttpError with proper status codes
+      if (error instanceof HttpError) {
+        return res.status(error.status).json({ message: error.message });
+      }
+      
       console.error('Chat API error:', error);
-      res.status(500).json({ message: "Failed to generate AI response" });
+      res.status(500).json({ message: "AI service is temporarily unavailable. Please try again." });
     }
   });
 
