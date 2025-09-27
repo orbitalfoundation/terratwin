@@ -151,7 +151,11 @@ class BambooSimWrapper {
                 this.pause();
                 this.currentDay = 0;
 
-                // @todo does reset even work? analyze
+                // Explicitly reset the plot to clear yearly statistics
+                if (this.plot && this.plot.onreset) {
+                        this.plot.onreset();
+                }
+
                 // Send reset command to volume service through sys
                 sys({ volume: { command: 'reset' } });
                 
@@ -353,61 +357,48 @@ overflow: 'hidden'
 </div>
 <div className={`absolute inset-0 p-4 overflow-y-auto ${activeTab === 'stats' ? '' : 'hidden'}`} data-content="stats">
 <div className="bg-card border border-border rounded p-6">
-<h3 className="text-xl font-bold text-card-foreground mb-4">Simulation Statistics</h3>
-{simRef.current?.plot?.stats ? (
+<h3 className="text-xl font-bold text-card-foreground mb-4">Yearly Accumulated Statistics</h3>
+{simRef.current?.plot?.stats?.yearly && simRef.current.plot.stats.yearly.length > 0 ? (
 <div className="overflow-x-auto">
 <table className="w-full text-sm text-card-foreground">
 <thead>
 <tr className="border-b border-border">
-<th className="text-left py-2 px-4">Metric</th>
-<th className="text-right py-2 px-4">Current Value</th>
-<th className="text-right py-2 px-4">Unit</th>
+<th className="text-left py-2 px-4">Year</th>
+<th className="text-right py-2 px-4">Avg Bamboo Height (m)</th>
+<th className="text-right py-2 px-4">Avg Coffee Height (m)</th>
+<th className="text-right py-2 px-4">Harvested (units)</th>
+<th className="text-right py-2 px-4">Economic Value (USD)</th>
+<th className="text-right py-2 px-4">CO2 (kg)</th>
 </tr>
 </thead>
 <tbody>
-<tr className="border-b border-border">
-<td className="py-2 px-4">Current Day</td>
-<td className="text-right py-2 px-4">{currentDay}</td>
-<td className="text-right py-2 px-4 text-muted-foreground">days</td>
+{simRef.current.plot.stats.yearly.map((yearData: any, index: number) => (
+<tr key={yearData.year} className="border-b border-border" data-testid={`row-year-${yearData.year}`}>
+<td className="py-2 px-4 font-medium">Year {yearData.year}</td>
+<td className="text-right py-2 px-4 text-green-400" data-testid={`text-bambooHeight-${yearData.year}`}>
+{yearData.avgBambooHeight}
+</td>
+<td className="text-right py-2 px-4 text-purple-400" data-testid={`text-coffeeHeight-${yearData.year}`}>
+{yearData.avgCoffeeHeight}
+</td>
+<td className="text-right py-2 px-4 text-yellow-400" data-testid={`text-harvested-${yearData.year}`}>
+{yearData.harvested}
+</td>
+<td className="text-right py-2 px-4 text-blue-400" data-testid={`text-value-${yearData.year}`}>
+${yearData.value.toLocaleString()}
+</td>
+<td className="text-right py-2 px-4 text-indigo-400" data-testid={`text-co2-${yearData.year}`}>
+{yearData.co2}
+</td>
 </tr>
-<tr className="border-b border-border">
-<td className="py-2 px-4">Current Year</td>
-<td className="text-right py-2 px-4">{currentYear.toFixed(1)}</td>
-<td className="text-right py-2 px-4 text-muted-foreground">years</td>
-</tr>
-<tr className="border-b border-border">
-<td className="py-2 px-4">Average Bamboo Height</td>
-<td className="text-right py-2 px-4 text-green-400">{stats.bambooHeight}</td>
-<td className="text-right py-2 px-4 text-muted-foreground">m</td>
-</tr>
-<tr className="border-b border-border">
-<td className="py-2 px-4">Average Coffee Height</td>
-<td className="text-right py-2 px-4 text-purple-400">{stats.coffeeHeight}</td>
-<td className="text-right py-2 px-4 text-muted-foreground">m</td>
-</tr>
-<tr className="border-b border-border">
-<td className="py-2 px-4">Total Harvested</td>
-<td className="text-right py-2 px-4 text-yellow-400">{stats.harvested}</td>
-<td className="text-right py-2 px-4 text-muted-foreground">units</td>
-</tr>
-<tr className="border-b border-border">
-<td className="py-2 px-4">Total Economic Value</td>
-<td className="text-right py-2 px-4 text-blue-400">${stats.value.toLocaleString()}</td>
-<td className="text-right py-2 px-4 text-muted-foreground">USD</td>
-</tr>
-{simRef.current?.plot?.stats?.cumulativeCO2 && (
-<tr className="border-b border-border">
-<td className="py-2 px-4">CO2 Sequestered</td>
-<td className="text-right py-2 px-4 text-indigo-400">{simRef.current.plot.stats.cumulativeCO2.toFixed(1)}</td>
-<td className="text-right py-2 px-4 text-muted-foreground">kg</td>
-</tr>
-)}
+))}
 </tbody>
 </table>
 </div>
 ) : (
 <div className="text-center py-8 text-muted-foreground">
-<p>No simulation data yet. Start the simulation to see statistics.</p>
+<p>No yearly data yet. Run the simulation for a full year to see accumulated statistics.</p>
+<p className="text-xs mt-2">Current simulation: Day {currentDay}, Year {currentYear.toFixed(1)}</p>
 </div>
 )}
 </div>
