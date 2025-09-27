@@ -1,6 +1,7 @@
 import { prototypical_entity } from './entity.js';
 import { prototypical_dendrocalamus_asper_culm } from './culm.js';
-import { deepClone } from '../utils/deepClone.js';
+
+import { deepClone } from '../../utils/deepClone.js';
 
 // A dendrocalamus asper clump prototype - clone to use
 export const prototypical_dendrocalamus_asper_clump = {

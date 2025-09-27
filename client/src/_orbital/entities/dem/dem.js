@@ -1,4 +1,4 @@
-export const dem_service = {
+export const prototypical_dem = {
 	id: 'dem-service',
 	kind: 'service',
 	

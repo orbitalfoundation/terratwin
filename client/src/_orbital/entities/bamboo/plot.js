@@ -1,8 +1,11 @@
+
+import { deepClone } from '../../utils/deepClone.js';
+
+import { sys } from '../../services-sys/sys.js';
+
 import { prototypical_entity } from './entity.js';
 import { prototypical_dendrocalamus_asper_clump } from './clump.js';
 import { prototypical_coffee_row } from './coffeerow.js';
-import { deepClone } from '../utils/deepClone.js';
-import { sys } from '../utils/sys.js';
 
 // A prototypical plot
 export const prototypical_plot = {

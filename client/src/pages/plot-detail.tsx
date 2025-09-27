@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Plot } from "@shared/schema";
 
-import { BambooSim } from "@/bamboo-sim/BambooSim";
+import { BambooSimWrapperComponent } from "@/components/bamboo-sim-wrapper-component";
 
 export default function PlotDetail() {
   const { id } = useParams();
@@ -253,7 +253,7 @@ export default function PlotDetail() {
 
         <div className="w-full bg-muted">
           {/* Simulation */}
-          <BambooSim/>
+          <BambooSimWrapperComponent/>
         </div>
 
         {/* Map and Details */}
