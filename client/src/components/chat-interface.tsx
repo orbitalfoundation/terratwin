@@ -2,8 +2,9 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MessageCircle, Send, Minimize2, Mic, MicOff } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
+import { useLocation } from 'wouter';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -16,6 +17,15 @@ interface ChatInterfaceProps {
   onToggle: () => void;
 }
 
+interface AgenticChatResponse {
+  type: 'conversation' | 'action';
+  message: string;
+  action?: {
+    type: 'goto_plot' | 'start_simulation' | 'pause_simulation' | 'reset_simulation';
+    data?: any;
+  };
+}
+
 export default function ChatInterface({ isExpanded, onToggle }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -23,6 +33,17 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
   const [speechSupported, setSpeechSupported] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const [location, setLocation] = useLocation();
+
+  // Get current plot ID from location if on plot detail page
+  const currentPlotId = location.startsWith('/plots/') && location !== '/plots/new' 
+    ? location.split('/')[2] 
+    : undefined;
+
+  // Get all plots for context
+  const { data: plots = [] } = useQuery<any[]>({
+    queryKey: ["/api/plots"],
+  });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -84,20 +105,48 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
     };
   }, []);
 
+  // Simulation control reference (will be passed in from parent)
+  const simulationRef = useRef<any>(null);
+
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
-      const response = await apiRequest('POST', '/api/chat', { message });
+      // Determine current page context
+      let currentPage = 'dashboard';
+      if (location === '/plots/new') currentPage = 'add-plot';
+      else if (location.startsWith('/plots/')) currentPage = 'plot-detail';
+
+      // Prepare context for the LLM
+      const context = {
+        currentPage,
+        currentPlotId,
+        availablePlots: plots.map((plot: any) => ({
+          id: plot.id,
+          name: plot.name,
+          status: plot.status
+        }))
+      };
+
+      const response = await apiRequest('POST', '/api/chat', { 
+        message, 
+        context 
+      });
       return response.json();
     },
-    onSuccess: (response) => {
+    onSuccess: (response: AgenticChatResponse) => {
+      // Add the assistant's message
       setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: response.reply,
+          content: response.message,
           timestamp: new Date(),
         },
       ]);
+
+      // Handle actions if present
+      if (response.type === 'action' && response.action) {
+        handleAction(response.action);
+      }
     },
     onError: (error: any) => {
       let errorMessage = 'Sorry, I encountered an error. Please try again.';
@@ -134,6 +183,86 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
     setMessages(prev => [...prev, userMessage]);
     chatMutation.mutate(input.trim());
     setInput('');
+  };
+
+  // Action handler for LLM actions
+  const handleAction = (action: AgenticChatResponse['action']) => {
+    if (!action) return;
+
+    switch (action.type) {
+      case 'goto_plot':
+        if (action.data?.plotId) {
+          setLocation(`/plots/${action.data.plotId}`);
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: `✅ Navigated to ${action.data.plotName || 'plot'}.`,
+              timestamp: new Date(),
+            },
+          ]);
+        }
+        break;
+
+      case 'start_simulation':
+        // Find the simulation component via DOM query or global reference
+        // This is a bit hacky but works for the current setup
+        const startButton = document.querySelector('[data-testid="button-start-simulation"]') as HTMLButtonElement;
+        if (startButton) {
+          startButton.click();
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: '🎬 Simulation started!',
+              timestamp: new Date(),
+            },
+          ]);
+        } else {
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: 'Unable to start simulation. Make sure you are on a plot detail page.',
+              timestamp: new Date(),
+            },
+          ]);
+        }
+        break;
+
+      case 'pause_simulation':
+        const pauseButton = document.querySelector('[data-testid="button-pause-simulation"]') as HTMLButtonElement;
+        if (pauseButton) {
+          pauseButton.click();
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: '⏸️ Simulation paused.',
+              timestamp: new Date(),
+            },
+          ]);
+        }
+        break;
+
+      case 'reset_simulation':
+        const resetButton = document.querySelector('[data-testid="button-reset-simulation"]') as HTMLButtonElement;
+        if (resetButton) {
+          resetButton.click();
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: '🔄 Simulation reset.',
+              timestamp: new Date(),
+            },
+          ]);
+        }
+        break;
+
+      default:
+        console.warn('Unknown action type:', action.type);
+    }
   };
 
   const handleVoiceInput = () => {
