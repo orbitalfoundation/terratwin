@@ -31,9 +31,11 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
   const [input, setInput] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [showInitialAnimation, setShowInitialAnimation] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const [location, setLocation] = useLocation();
+
 
   // Get current plot ID from location if on plot detail page
   const currentPlotId = location.startsWith('/plots/') && location !== '/plots/new' 
@@ -103,6 +105,21 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
         recognitionRef.current.abort();
       }
     };
+  }, []);
+
+  // Handle initial animation
+  useEffect(() => {
+    // Ensure animation starts fresh on mount
+    setShowInitialAnimation(true);
+    console.log('🎬 ChatInterface: Starting pulse animation');
+    
+    // Stop the animation after 5 seconds (3 pulses × 1.5s each + buffer)
+    const timer = setTimeout(() => {
+      setShowInitialAnimation(false);
+      console.log('⏹️ ChatInterface: Stopping pulse animation');
+    }, 5000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Simulation control reference (will be passed in from parent)
@@ -307,7 +324,7 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
         variant="ghost"
         size="sm"
         onClick={onToggle}
-        className="text-muted-foreground hover:text-primary"
+        className={`text-muted-foreground hover:text-primary ${showInitialAnimation ? 'chat-pulse' : ''}`}
         data-testid="button-expand-chat"
       >
         <MessageCircle className="w-5 h-5" />
