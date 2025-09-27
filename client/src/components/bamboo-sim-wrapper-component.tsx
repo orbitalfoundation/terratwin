@@ -104,7 +104,7 @@ class BambooSimWrapper {
         isRunning = false
         currentDay = 0
         speed = 1
-        rate = 100
+        rate = 10
         animationId = null
         days = 1
 
