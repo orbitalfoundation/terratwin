@@ -46,7 +46,6 @@ export const prototypical_plot = {
                 energyCostJoules: [],
                 coffeeHeight: [],
                 coffeeHarvested: [],
-                totalHarvest: [], // Add this for compatibility
                 
                 // Yearly accumulated statistics
                 yearly: [],
@@ -96,7 +95,6 @@ prototypical_plot.onreset = function() {
                 energyCostJoules: [],
                 coffeeHeight: [],
                 coffeeHarvested: [],
-                totalHarvest: [], // Add this for compatibility
                 
                 // Yearly accumulated statistics
                 yearly: [],

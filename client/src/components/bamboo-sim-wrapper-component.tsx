@@ -151,13 +151,21 @@ class BambooSimWrapper {
                 this.pause();
                 this.currentDay = 0;
 
-                // Explicitly reset the plot to clear yearly statistics
+                // Send reset command to volume service through sys first
+                sys({ volume: { command: 'reset' } });
+
+                // Then explicitly reset the plot to clear yearly statistics and re-register
                 if (this.plot && this.plot.onreset) {
                         this.plot.onreset();
+                        // Re-register plot and children for 3D stability
+                        sys(this.plot);
+                        this.plot.children.forEach((entity: any) => {
+                                sys(entity);
+                                if (entity.children) {
+                                        entity.children.forEach((child: any) => sys(child));
+                                }
+                        });
                 }
-
-                // Send reset command to volume service through sys
-                sys({ volume: { command: 'reset' } });
                 
                 if (this.onTick) {
                         this.onTick();
@@ -229,9 +237,11 @@ export function BambooSimWrapperComponent() {
                                         totalBambooHeight += culm.volume.hwd[0];
                                         culmCount++;
                                 });
-                        } else if (entity.coffee) {
-                                totalCoffeeHeight += entity.volume.hwd[0];
-                                coffeePlantCount++;
+                        } else if (entity.coffeerow) {
+                                entity.children.forEach((plant: any) => {
+                                        totalCoffeeHeight += plant.volume.hwd[0];
+                                        coffeePlantCount++;
+                                });
                         }
                 });
                 
