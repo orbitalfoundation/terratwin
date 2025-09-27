@@ -36,7 +36,7 @@ export async function generateChatResponse(message: string): Promise<string> {
           content: message
         }
       ],
-      max_tokens: 500
+      max_completion_tokens: 500
     });
 
     return response.choices[0].message.content || "I'm sorry, I couldn't generate a response.";

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Send, Minimize2 } from 'lucide-react';
+import { MessageCircle, Send, Minimize2, Mic, MicOff } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 
@@ -19,7 +19,10 @@ interface ChatInterfaceProps {
 export default function ChatInterface({ isExpanded, onToggle }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -28,6 +31,58 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      setSpeechSupported(true);
+      
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+      
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+      
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setInput(transcript);
+      };
+      
+      recognition.onerror = (event: any) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+        
+        // Don't show error for user cancellation
+        if (event.error !== 'aborted' && event.error !== 'not-allowed') {
+          setMessages(prev => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: 'Sorry, I had trouble hearing you. Please try again or type your message.',
+              timestamp: new Date(),
+            },
+          ]);
+        }
+      };
+      
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognitionRef.current = recognition;
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
 
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -79,6 +134,38 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
     setMessages(prev => [...prev, userMessage]);
     chatMutation.mutate(input.trim());
     setInput('');
+  };
+
+  const handleVoiceInput = () => {
+    if (!speechSupported || !recognitionRef.current) {
+      setMessages(prev => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: 'Voice input is not supported in this browser. Please type your message instead.',
+          timestamp: new Date(),
+        },
+      ]);
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      try {
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Failed to start speech recognition:', error);
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: 'Unable to start voice input. Please check your microphone permissions.',
+            timestamp: new Date(),
+          },
+        ]);
+      }
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -165,15 +252,28 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask about your plots..."
+            placeholder={isListening ? "Listening..." : "Ask about your plots..."}
             className="flex-1 text-sm"
-            disabled={chatMutation.isPending}
+            disabled={chatMutation.isPending || isListening}
             data-testid="input-chat-message"
           />
+          {speechSupported && (
+            <Button
+              type="button"
+              size="sm"
+              variant={isListening ? "default" : "outline"}
+              onClick={handleVoiceInput}
+              disabled={chatMutation.isPending}
+              className={isListening ? "animate-pulse" : ""}
+              data-testid="button-voice-input"
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </Button>
+          )}
           <Button
             type="submit"
             size="sm"
-            disabled={!input.trim() || chatMutation.isPending}
+            disabled={!input.trim() || chatMutation.isPending || isListening}
             data-testid="button-send-message"
           >
             <Send className="w-4 h-4" />
