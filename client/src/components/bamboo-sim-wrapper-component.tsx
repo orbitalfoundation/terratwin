@@ -6,263 +6,224 @@ import { volume_service } from '@/_orbital/services-volume/volume.js';
 import { prototypical_dem } from '@/_orbital/entities/dem/dem.js';
 import { prototypical_plot } from '@/_orbital/entities/bamboo/plot.js';
 
+// default dem
+const DEM_STATIC = {
+	bounds: {
+		north: 36.063,
+		south: 36.053,
+		east: -112.103,
+		west: -112.113
+	},
+	position: [50, 0, 50],
+	sceneSize: [100, 100],
+	heightScale: 0.01,
+	includeSatellite: true
+}
+
 ///
 /// For our convenience the orbital simulation is wrapped by a little helper class
 ///
 
 class BambooSimWrapper {
 
-        demVolume = null
-        plot = null
-        onTick = null
+	dem = null
+	plot = null
+	onTick = null
 
-        constructor(domElement, onTick = null) {
-                this.onTick = onTick
-                this.build(domElement)
-        }
+	isRunning = false
+	currentDay = 0
+	speed = 1
+	rate = 10
+	animationId = null
+	days = 1
 
-        async build(domElement) {
+	constructor(_domElement, _onTick = null) {
 
-                // register volume service and DEM right away at startup
-                // @todo domelement should not be set on a shared service!
-                // @todo loading dem by hand should go away - it should be declarative
-                // @todo use a dynamic area for dem not hardcoded geography
-                // @todo don't call the method directly for dem; use sys()
+		this.onTick = _onTick
+	
+		// register 'volume' - a 3d viewer
+		volume_service.domElement = _domElement
+		sys(volume_service)
 
-                volume_service.domElement = domElement
-                sys(volume_service)
+		// adjust volume camera
+		sys({ volume: { shape: 'camera', xyz: [50, 0, 50] } });
 
-                console.log('BambooSimApp: Loading DEM data...');
+		// regenerate orbital simulation plot from current pgsql plot parameters
+		this.regeneratePlot()
+	}
 
-                try {
+	async regeneratePlot() {
 
-                        this.demVolume = await prototypical_dem.getDemVolume({
-                                bounds: {
-                                        north: 36.063,
-                                        south: 36.053,
-                                        east: -112.103,
-                                        west: -112.113
-                                },
-                                position: [50, 0, 50],
-                                sceneSize: [100, 100],
-                                heightScale: 0.01,
-                                includeSatellite: true
-                        });
+		// remove previous objects from the simulation
+		if(this.plot) {
+			this.plot.children.forEach(clump=>{
+				clump.children.forEach(culm=>{
+					sys({obliterate:true,...culm})
+				})
+				sys({obliterate:true,...clump})
+			})
+			sys({obliterate:true,...plot})
+		}
 
-                        if(!this.demVolume) {
-                                console.error("Cannot load dem")
-                                return
-                        }
+		if(this.dem) {
+			sys({obliterate:true,...this.dem})
+		}
 
-                        sys(this.demVolume);
+		// optionally flush geometry from volume - obliterate should have done this
+		sys({ volume: { command: "reset" } })
 
-                        sys({
-                                id: 'camera-target',
-                                volume: {
-                                        shape: 'camera',
-                                        xyz: [50, 0, 50]
-                                }
-                        });
+		// build dem and register with volume
+		this.dem = await prototypical_dem.getDemVolume(DEM_STATIC)
+		sys(this.dem);
 
-                } catch (error) {
-                                console.error('BambooSimApp: Failed to load DEM:', error);
-                }
+		// build plot and register with volume
+		// @todo should pull in properties from pgsql plot and use them
+		this.plot = deepClone(prototypical_plot);
+		this.plot.id = 1;
+		this.plot.field.width = 100;
+		this.plot.field.depth = 100;
+		this.plot.field.ENABLE_INTERCROPPING = false;
+		this.plot.demData = this.dem && this.dem.volume.demData ? this.dem.volume.demData : null
+		sys(this.plot);
+	}
 
-        }
+	simulationStep() {
+		for (let i = 0; i < this.days; i++) {
+			sys({step: 1});
+			this.currentDay++;
+		}
+		if (this.onTick) {
+			this.onTick();
+		}
+	}
 
-        initializeplotOnce() {
+	animate() {
+		if (!this.isRunning) return
+		this.simulationStep(this.speed)
+		this.animationId = setTimeout(() => this.animate(), this.rate)
+	}
 
-                if(this.plot) return
+	start() {
+		this.isRunning = true
+		this.animate()
+	}
 
-                console.log('BambooSimApp: Initializing this.plot...');
-                
-                // Create plot
-                this.plot = deepClone(prototypical_plot);
-                this.plot.id = 1;
-                this.plot.field.width = 100;
-                this.plot.field.depth = 100;
-                this.plot.field.ENABLE_INTERCROPPING = false;
-                
-                // Pass DEM data to this.plot.if available
-                if (this.demVolume && this.demVolume.volume.demData) {
-                                this.plot.demData = this.demVolume.volume.demData;
-                }
-                
-                // Register
-                sys(this.plot);
-                
-                // @todo remove
-                // Register all children with sys automatically please
-                this.plot.children.forEach(entity => {
-                                sys(entity);
-                                if (entity.children) {
-                                                entity.children.forEach(child => sys(child));
-                                }
-                });
-        }
+	pause() {
+		this.isRunning = false
+		if (this.animationId) {
+			clearTimeout(this.animationId)
+			this.animationId = null
+		}
+	}
 
-        isRunning = false
-        currentDay = 0
-        speed = 1
-        rate = 10
-        animationId = null
-        days = 1
+	step(days = 1) {
+		this.days = days;
+		this.simulationStep();
+		this.days = 1; // Reset to default
+	}
 
-        simulationStep() {
-                for (let i = 0; i < this.days; i++) {
-                        sys({step: 1});
-                        this.currentDay++;
-                }
-                if (this.onTick) {
-                        this.onTick();
-                }
-        }
-
-        animate() {
-                if (!this.isRunning) return
-                this.simulationStep(this.speed)
-                this.animationId = setTimeout(() => this.animate(), this.rate)
-        }
-
-        start() {
-                this.initializeplotOnce()
-                this.isRunning = true
-                this.animate()
-        }
-
-        pause() {
-                this.isRunning = false
-                if (this.animationId) {
-                        clearTimeout(this.animationId)
-                        this.animationId = null
-                }
-        }
-
-        step(days = 1) {
-                if (!this.plot) {
-                                this.initializeplotOnce()
-                }
-                this.days = days;
-                this.simulationStep();
-                this.days = 1; // Reset to default
-        }
-
-        reset() {
-                this.pause();
-                this.currentDay = 0;
-
-                // Send reset command to volume service through sys first
-                sys({ volume: { command: 'reset' } });
-
-                // Then explicitly reset the plot to clear yearly statistics and re-register
-                if (this.plot && this.plot.onreset) {
-                        this.plot.onreset();
-                        // Re-register plot and children for 3D stability
-                        sys(this.plot);
-                        this.plot.children.forEach((entity: any) => {
-                                sys(entity);
-                                if (entity.children) {
-                                        entity.children.forEach((child: any) => sys(child));
-                                }
-                        });
-                }
-                
-                if (this.onTick) {
-                        this.onTick();
-                }
-        }
+	reset() {
+		this.pause();
+		this.currentDay = 0;
+		regeneratePlot();
+		if (this.onTick) {
+			this.onTick();
+		}
+	}
 }
+
+
 
 ///
 /// HTML Presentation of Sim
 ///
 
 export function BambooSimWrapperComponent() {
-        const ref = useRef<HTMLDivElement | null>(null);
-        const simRef = useRef<BambooSimWrapper | null>(null);
-        const [speed, setSpeed] = useState(1);
-        const [activeTab, setActiveTab] = useState('3d');
-        const [stats, setStats] = useState({
-                bambooHeight: 0,
-                coffeeHeight: 0,
-                harvested: 0,
-                value: 0
-        });
-        const [currentDay, setCurrentDay] = useState(0);
-        const [currentYear, setCurrentYear] = useState(0);
+	const ref = useRef<HTMLDivElement | null>(null);
+	const simRef = useRef<BambooSimWrapper | null>(null);
+	const [speed, setSpeed] = useState(1);
+	const [activeTab, setActiveTab] = useState('3d');
+	const [stats, setStats] = useState({
+		bambooHeight: 0,
+		coffeeHeight: 0,
+		harvested: 0,
+		value: 0
+	});
+	const [currentDay, setCurrentDay] = useState(0);
+	const [currentYear, setCurrentYear] = useState(0);
 
-        useEffect(() => {
-                if (!ref.current) return;
-                if (!simRef.current) {
-                        simRef.current = new BambooSimWrapper(ref.current, updateStats);
-                }
-                
-                // Cleanup function
-                return () => {
-                        if (simRef.current) {
-                                simRef.current.pause(); // Stop any running animations
-                        }
-                };
-        }, []);
+	useEffect(() => {
+		if (!ref.current) return;
+		if (!simRef.current) {
+			simRef.current = new BambooSimWrapper(ref.current, updateStats);
+		}
+		
+		// Cleanup function
+		return () => {
+			if (simRef.current) {
+				simRef.current.pause(); // Stop any running animations
+			}
+		};
+	}, []);
 
-        const handleStart = () => simRef.current?.start();
-        const handlePause = () => simRef.current?.pause();
-        const handleStep = () => simRef.current?.step(1);
-        const handleYear = () => simRef.current?.step(365);
-        const handleReset = () => simRef.current?.reset();
-        
-        const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                const newSpeed = parseInt(e.target.value);
-                setSpeed(newSpeed);
-                if (simRef.current) {
-                        simRef.current.speed = newSpeed;
-                }
-        };
+	const handleStart = () => simRef.current?.start();
+	const handlePause = () => simRef.current?.pause();
+	const handleStep = () => simRef.current?.step(1);
+	const handleYear = () => simRef.current?.step(365);
+	const handleReset = () => simRef.current?.reset();
+	
+	const handleSpeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const newSpeed = parseInt(e.target.value);
+		setSpeed(newSpeed);
+		if (simRef.current) {
+			simRef.current.speed = newSpeed;
+		}
+	};
 
-        const handleTabChange = (tab: string) => {
-                setActiveTab(tab);
-        };
-        
-        const updateStats = () => {
-                if (!simRef.current?.plot) return;
-                
-                let totalBambooHeight = 0;
-                let culmCount = 0;
-                let totalCoffeeHeight = 0;
-                let coffeePlantCount = 0;
-                
-                simRef.current.plot.children.forEach((entity: any) => {
-                        if (entity.clump) {
-                                entity.children.forEach((culm: any) => {
-                                        totalBambooHeight += culm.volume.hwd[0];
-                                        culmCount++;
-                                });
-                        } else if (entity.coffeerow) {
-                                entity.children.forEach((plant: any) => {
-                                        totalCoffeeHeight += plant.volume.hwd[0];
-                                        coffeePlantCount++;
-                                });
-                        }
-                });
-                
-                const avgBambooHeight = culmCount > 0 ? totalBambooHeight / culmCount : 0;
-                const avgCoffeeHeight = coffeePlantCount > 0 ? totalCoffeeHeight / coffeePlantCount : 0;
-                
-                // Update current day and year
-                const newCurrentDay = simRef.current.currentDay;
-                const newCurrentYear = Math.floor(newCurrentDay / 365);
-                setCurrentDay(newCurrentDay);
-                setCurrentYear(newCurrentYear);
-                
-                // Update React state
-                setStats({
-                        bambooHeight: parseFloat(avgBambooHeight.toFixed(1)),
-                        coffeeHeight: parseFloat(avgCoffeeHeight.toFixed(1)),
-                        harvested: simRef.current.plot.stats.cumulativeHarvest || 0,
-                        value: simRef.current.plot.stats.cumulativeValue || 0
-                });
-                
-        };
+	const handleTabChange = (tab: string) => {
+		setActiveTab(tab);
+	};
+	
+	const updateStats = () => {
+		if (!simRef.current?.plot) return;
+		
+		let totalBambooHeight = 0;
+		let culmCount = 0;
+		let totalCoffeeHeight = 0;
+		let coffeePlantCount = 0;
+		
+		simRef.current.plot.children.forEach((entity: any) => {
+			if (entity.clump) {
+				entity.children.forEach((culm: any) => {
+					totalBambooHeight += culm.volume.hwd[0];
+					culmCount++;
+				});
+			} else if (entity.coffeerow) {
+				entity.children.forEach((plant: any) => {
+					totalCoffeeHeight += plant.volume.hwd[0];
+					coffeePlantCount++;
+				});
+			}
+		});
+		
+		const avgBambooHeight = culmCount > 0 ? totalBambooHeight / culmCount : 0;
+		const avgCoffeeHeight = coffeePlantCount > 0 ? totalCoffeeHeight / coffeePlantCount : 0;
+		
+		// Update current day and year
+		const newCurrentDay = simRef.current.currentDay;
+		const newCurrentYear = Math.floor(newCurrentDay / 365);
+		setCurrentDay(newCurrentDay);
+		setCurrentYear(newCurrentYear);
+		
+		// Update React state
+		setStats({
+			bambooHeight: parseFloat(avgBambooHeight.toFixed(1)),
+			coffeeHeight: parseFloat(avgCoffeeHeight.toFixed(1)),
+			harvested: simRef.current.plot.stats.cumulativeHarvest || 0,
+			value: simRef.current.plot.stats.cumulativeValue || 0
+		});
+		
+	};
 
 return (
 <div className="flex flex-col h-screen">

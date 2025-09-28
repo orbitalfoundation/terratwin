@@ -1,6 +1,7 @@
 import { prototypical_entity } from './entity.js';
 import { prototypical_dendrocalamus_asper_culm } from './culm.js';
 
+import { sys } from '../../services-sys/sys.js';
 import { deepClone } from '../../utils/deepClone.js';
 
 // A dendrocalamus asper clump prototype - clone to use
@@ -43,7 +44,7 @@ export const prototypical_dendrocalamus_asper_clump = {
 	}
 }
 
-prototypical_dendrocalamus_asper_clump.onreset = function(plot) {
+prototypical_dendrocalamus_asper_clump.oninit = function(plot) {
 	const clump = this
 	clump.children = []
 	clump.createdat = this.updatedat = performance.now()
@@ -69,7 +70,7 @@ prototypical_dendrocalamus_asper_clump.onreset = function(plot) {
 	for(let i = 0; i < max; i++) {
 		const culm = deepClone(prototypical_dendrocalamus_asper_culm)
 		culm.parent = clump.id
-		culm.id = clump.id + "/" + counter
+		culm.id = clump.id + "/culm-" + counter
 		culm.createdat = performance.now()
 		
 		// Position culms randomly within the clump area
@@ -140,8 +141,10 @@ prototypical_dendrocalamus_asper_clump.onreset = function(plot) {
 		// Set initial color
 		culm.volume.color = (r << 16) | (g << 8) | b
 		
-		counter++
 		clump.children.push(culm)
+		sys(culm)
+
+		counter++
 	}
 }
 

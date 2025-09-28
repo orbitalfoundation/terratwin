@@ -1,7 +1,8 @@
+
 export const prototypical_dem = {
-	id: 'dem-service',
-	kind: 'service',
-	
+	id: 'dem-volume',
+	kind: 'entity',
+
 	// Cache for downloaded tiles
 	tileCache: new Map(),
 	
@@ -337,9 +338,9 @@ export const prototypical_dem = {
 		}
 	},
 	
-	// General function to create DEM volume
-	getDemVolume: async function(params = {}) {
-		// Default parameters
+	// General function to create DEM volume by hand
+	getDemVolume: async function(params) {
+
 		const {
 			bounds = {
 				north: 36.063,  // Grand Canyon default
@@ -353,9 +354,9 @@ export const prototypical_dem = {
 			sceneSize = [100, 100],  // width, depth in scene units
 			heightScale = 0.01,
 			color = 0x8B4513,  // Saddle brown
-			includeSatellite = false  // Whether to fetch satellite imagery
+			includeSatellite = true  // Whether to fetch satellite imagery
 		} = params;
-		
+
 		try {
 			console.log('DEM Service: Fetching DEM data...');
 			console.log('DEM Service: Bounds:', bounds);
@@ -456,17 +457,5 @@ export const prototypical_dem = {
 			console.error('DEM Service: Failed to create DEM volume:', error);
 			return null;
 		}
-	},
-	
-	// Test Grand Canyon DEM as volume object (now uses getDemVolume)
-	testGrandCanyonVolume: async function() {
-		return this.getDemVolume({
-			bounds: {
-				north: 36.063,
-				south: 36.053,
-				east: -112.103,
-				west: -112.113
-			}
-		});
 	}
 };

@@ -1,56 +1,55 @@
 ///
-/// An event bus that provides several features to help us marshal object behavior:
+/// An event bus pattern that provides several features to help us marshal object behavior:
 ///
 ///		- provides a few hardcoded listeners that do some work for us
 ///
 ///		- allows callers to register their own listeners
+///
+///		- see more complete implementation at orbital.foundation for more flexibility
 ///
 ///	Usage is that you throw an object at this event bus, and listeners can perform actions on it
 ///
 
 const entities = []
 const observers = []
+const ids = {}
 
-export function sys(blob) {
+function sys(blob) {
 
-	// step -> if blob has a step property, call onstep on all registered entities
-	if(blob.step !== undefined) {
-		const daysElapsed = blob.step // For now, assume step is always in days
-		entities.forEach(entity => {
-			if(entity.onstep) {
-				entity.onstep(daysElapsed)
-			}
-		})
-		// Also step observers (like volume service)
-		observers.forEach(observer => {
-			if(observer.onstep) {
-				observer.onstep(daysElapsed)
-			}
-		})
-		return
+	// if blob has an id then remember it
+	if(blob.id) {
+		if(blob.obliterate) {
+			delete ids[blob.id]
+		} else {
+			ids[blob.id] = blob
+		}
 	}
 
-	// Call all observers with the blob
+	// Entity event? Visit all entities observing this event
 	observers.forEach(observer => {
 		if(observer.onentity) {
 			observer.onentity(blob)
 		}
 	})
 
-	// onreset -> if your object has an onreset() method then call it now
-	// @todo why is this specialized? fix
-	if(blob.onreset) {
-		console.log("sys: resetting ",blob.id)
-		// Pass plot reference if this is a child entity
-		if(blob.parent && entities.length > 0) {
-			// Convert parent to string if it's a number
-			const parentStr = String(blob.parent);
-			const plotId = parentStr.includes('/') ? parentStr.split('/')[0] : parentStr;
-			const plot = entities.find(e => String(e.id) === plotId);
-			blob.onreset(plot)
-		} else {
-			blob.onreset()
-		}
+	if(blob.obliterate) {
+		return
+	}
+
+	// Step event? Visit all entities observing this event
+	if(blob.step !== undefined) {
+		entities.forEach(entity => {
+			if(entity.onstep) {
+				entity.onstep(blob.step)
+			}
+		})
+		return
+	}
+
+	// Call oninit if any
+	if(blob.oninit) {
+		console.log("sys: initalizing ",blob.id)
+		blob.oninit()
 	}
 
 	// Register entity if it has onstep method
@@ -64,4 +63,9 @@ export function sys(blob) {
 	}
 
 }
+
+sys.ids = ids
+
+export { sys }
+
 
