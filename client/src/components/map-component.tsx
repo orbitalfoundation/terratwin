@@ -28,7 +28,6 @@ interface MapComponentProps {
   focusLatitude?: number;
   focusLongitude?: number;
   focusTrigger?: number; // Increment this to trigger a focus animation
-  onInitialFocus?: (lat: number, lon: number) => void; // Callback for initial focus
 }
 
 // Debug logging utility
@@ -57,8 +56,7 @@ export default function MapComponent({
   focusLatitude,
   focusLongitude,
   focusTrigger = 0,
-  onError,
-  onInitialFocus
+  onError
 }: MapComponentProps) {
   const { data: cesiumData } = useQuery<{cesiumKey: string | null}>({
     queryKey: ["/api/cesium-key"],
@@ -80,6 +78,7 @@ export default function MapComponent({
   const focusAnimationIdRef = useRef<number>();
   const [engineReady, setEngineReady] = useState(false);
   const ThreeRef = useRef<any>(null);
+  const [hasInitialFocused, setHasInitialFocused] = useState(false);
   
 
   // Constants - adjusted based on view mode
@@ -518,7 +517,7 @@ export default function MapComponent({
     updateBoundaryClipping();
   }, [enableBoundary, boundaryPoints, engineReady]);
 
-  // Handle plot visualization and initial focus
+  // Handle plot visualization
   useEffect(() => {
     if (!engineReady || !sceneRef.current || !ThreeRef.current || plots.length === 0) return;
 
@@ -611,26 +610,31 @@ export default function MapComponent({
     };
 
     updatePlots();
-
-    // Set up initial focus timer if we have plots and haven't focused yet
-    if (plots.length > 0 && focusTrigger === 0) {
-      const timer = setTimeout(() => {
-        // Focus on the first plot
-        const firstPlot = plots[0];
-        if (onInitialFocus) {
-          onInitialFocus(firstPlot.latitude, firstPlot.longitude);
-        }
-      }, 3000); // 3 second delay
-
-      return () => clearTimeout(timer);
-    }
-  }, [plots, engineReady, viewMode, latitude, longitude, focusTrigger, onInitialFocus]);
+  }, [plots, engineReady, viewMode, latitude, longitude]);
 
 
-  // Camera focus functionality - smooth animation with zoom out/in
+  // Initial auto-focus on first plot
   useEffect(() => {
-    if (!engineReady || !cameraRef.current || !controlsRef.current || focusTrigger === 0) return;
-    if (focusLatitude === undefined || focusLongitude === undefined) return;
+    if (!engineReady || hasInitialFocused || plots.length === 0) return;
+    
+    const timer = setTimeout(() => {
+      // Trigger focus on the first plot
+      const firstPlot = plots[0];
+      setHasInitialFocused(true);
+      
+      // Use the existing focus mechanism by updating internal state
+      if (cameraRef.current && controlsRef.current) {
+        // Directly call the focus animation logic
+        focusOnLocation(firstPlot.latitude, firstPlot.longitude);
+      }
+    }, 3000); // 3 second delay
+
+    return () => clearTimeout(timer);
+  }, [engineReady, hasInitialFocused, plots]);
+
+  // Helper function to focus on a location
+  const focusOnLocation = (targetLat: number, targetLon: number) => {
+    if (!cameraRef.current || !controlsRef.current || !ThreeRef.current) return;
 
     // Cancel any existing focus animation
     if (focusAnimationIdRef.current) {
@@ -640,10 +644,10 @@ export default function MapComponent({
     const camera = cameraRef.current!;
     const controls = controlsRef.current!;
     
-    console.log(`🎯 CAMERA FOCUS REQUEST: Target point (${focusLatitude}°, ${focusLongitude}°)`);
+    console.log(`🎯 CAMERA FOCUS REQUEST: Target point (${targetLat}°, ${targetLon}°)`);
     
     if (viewMode === "globe") {
-      const { Spherical, Vector3, Quaternion } = ThreeRef.current;
+      const { Spherical, Vector3 } = ThreeRef.current;
       
       // Animation parameters
       const animationDuration = 2000; // 2 seconds
@@ -656,8 +660,8 @@ export default function MapComponent({
       
       // Calculate target position in spherical coordinates
       const targetRadius = EARTH_RADIUS + 10000; // 10km above surface
-      const lat = focusLatitude * Math.PI / 180;
-      const lon = focusLongitude * Math.PI / 180 + Math.PI/2;
+      const lat = targetLat * Math.PI / 180;
+      const lon = targetLon * Math.PI / 180 + Math.PI/2;
       const targetPhi = Math.PI / 2 - lat;
       const targetTheta = lon;
       
@@ -715,7 +719,7 @@ export default function MapComponent({
         if (progress < 1) {
           focusAnimationIdRef.current = requestAnimationFrame(animate);
         } else {
-          console.log(`✅ CAMERA ANIMATION COMPLETE: Final position at (${focusLatitude}°, ${focusLongitude}°)`);
+          console.log(`✅ CAMERA ANIMATION COMPLETE: Final position at (${targetLat}°, ${targetLon}°)`);
         }
       };
       
@@ -728,8 +732,8 @@ export default function MapComponent({
       const latRad = latitude * Math.PI / 180;
       const METERS_PER_DEGREE_LON = 111320 * Math.cos(latRad);
       
-      const deltaLonMeters = (focusLongitude - longitude) * METERS_PER_DEGREE_LON;
-      const deltaLatMeters = (focusLatitude - latitude) * METERS_PER_DEGREE_LAT;
+      const deltaLonMeters = (targetLon - longitude) * METERS_PER_DEGREE_LON;
+      const deltaLatMeters = (targetLat - latitude) * METERS_PER_DEGREE_LAT;
       
       const targetX = deltaLonMeters * SCENE_UNITS_PER_METER;
       const targetZ = deltaLatMeters * SCENE_UNITS_PER_METER;
@@ -767,7 +771,20 @@ export default function MapComponent({
       
       animate();
     }
-    
+  };
+
+  // Camera focus functionality - smooth animation with zoom out/in
+  useEffect(() => {
+    if (!engineReady || !cameraRef.current || !controlsRef.current || focusTrigger === 0) return;
+    if (focusLatitude === undefined || focusLongitude === undefined) return;
+
+    focusOnLocation(focusLatitude, focusLongitude);
+
+    // Cancel any existing focus animation
+    if (focusAnimationIdRef.current) {
+      cancelAnimationFrame(focusAnimationIdRef.current);
+    }
+
   }, [focusTrigger, focusLatitude, focusLongitude, engineReady, viewMode, latitude, longitude]);
 
   // Animation loop
