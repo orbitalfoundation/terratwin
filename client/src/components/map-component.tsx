@@ -606,27 +606,17 @@ export default function MapComponent({
       const animationDuration = 2000; // 2 seconds
       const startTime = Date.now();
       
-      // Get current camera state
+      // Get current camera state in spherical coordinates
       const startPosition = camera.position.clone();
-      const startQuaternion = camera.quaternion.clone();
-      const startRadius = startPosition.length();
+      const startSpherical = new Spherical();
+      startSpherical.setFromVector3(startPosition);
       
-      // Calculate target position
+      // Calculate target position in spherical coordinates
       const targetRadius = EARTH_RADIUS * 1.5;
       const lat = focusLatitude * Math.PI / 180;
       const lon = focusLongitude * Math.PI / 180 + Math.PI/2;
-      const phi = Math.PI / 2 - lat;
-      const theta = lon;
-      
-      const targetSpherical = new Spherical(targetRadius, phi, theta);
-      const targetPosition = new Vector3();
-      targetPosition.setFromSpherical(targetSpherical);
-      
-      // Create a temporary camera to get target quaternion
-      const tempCamera = camera.clone();
-      tempCamera.position.copy(targetPosition);
-      tempCamera.lookAt(0, 0, 0);
-      const targetQuaternion = tempCamera.quaternion.clone();
+      const targetPhi = Math.PI / 2 - lat;
+      const targetTheta = lon;
       
       // Peak altitude for the arc (2.5x Earth radius)
       const peakRadius = EARTH_RADIUS * 2.5;
@@ -642,29 +632,36 @@ export default function MapComponent({
         const easedProgress = easeInOutCubic(progress);
         
         // Calculate radius with arc trajectory
-        // Goes from startRadius -> peakRadius -> targetRadius
         let currentRadius;
         if (progress < 0.5) {
           // First half: zoom out
           const halfProgress = progress * 2;
-          currentRadius = startRadius + (peakRadius - startRadius) * easeInOutCubic(halfProgress);
+          currentRadius = startSpherical.radius + (peakRadius - startSpherical.radius) * easeInOutCubic(halfProgress);
         } else {
           // Second half: zoom in
           const halfProgress = (progress - 0.5) * 2;
           currentRadius = peakRadius + (targetRadius - peakRadius) * easeInOutCubic(halfProgress);
         }
         
-        // Spherical interpolation for position
-        const currentQuaternion = new Quaternion();
-        currentQuaternion.slerpQuaternions(startQuaternion, targetQuaternion, easedProgress);
+        // Interpolate spherical coordinates
+        // Ensure we take the shortest path for theta (azimuthal angle)
+        let deltaTheta = targetTheta - startSpherical.theta;
+        if (deltaTheta > Math.PI) deltaTheta -= 2 * Math.PI;
+        if (deltaTheta < -Math.PI) deltaTheta += 2 * Math.PI;
         
-        // Apply the interpolated rotation to a unit vector and scale by radius
-        const unitVector = new Vector3(1, 0, 0);
-        unitVector.applyQuaternion(currentQuaternion);
-        camera.position.copy(unitVector.multiplyScalar(currentRadius));
+        const currentPhi = startSpherical.phi + (targetPhi - startSpherical.phi) * easedProgress;
+        const currentTheta = startSpherical.theta + deltaTheta * easedProgress;
         
-        // Update camera orientation
-        camera.quaternion.copy(currentQuaternion);
+        // Create new spherical coordinates and convert to position
+        const currentSpherical = new Spherical(currentRadius, currentPhi, currentTheta);
+        const newPosition = new Vector3();
+        newPosition.setFromSpherical(currentSpherical);
+        
+        // Set camera position
+        camera.position.copy(newPosition);
+        
+        // Always look at Earth center
+        camera.lookAt(0, 0, 0);
         
         // Update controls
         if (controls.target) {
