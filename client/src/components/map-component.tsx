@@ -584,10 +584,15 @@ export default function MapComponent({
   }, [plots, engineReady, viewMode, latitude, longitude]);
 
 
-  // Camera focus functionality - using direct positioning like dots but further out
+  // Camera focus functionality - smooth animation with zoom out/in
   useEffect(() => {
     if (!engineReady || !cameraRef.current || !controlsRef.current || focusTrigger === 0) return;
     if (focusLatitude === undefined || focusLongitude === undefined) return;
+
+    // Cancel any existing focus animation
+    if (focusAnimationIdRef.current) {
+      cancelAnimationFrame(focusAnimationIdRef.current);
+    }
 
     const camera = cameraRef.current!;
     const controls = controlsRef.current!;
@@ -595,43 +600,89 @@ export default function MapComponent({
     console.log(`🎯 CAMERA FOCUS REQUEST: Target point (${focusLatitude}°, ${focusLongitude}°)`);
     
     if (viewMode === "globe") {
-      // Use Three.js Spherical helper for cleaner coordinate calculation
-      const { Spherical, Vector3 } = ThreeRef.current;
-      const cameraRadius = EARTH_RADIUS * 1.5; // Closer to surface (1.5x Earth radius)
+      const { Spherical, Vector3, Quaternion } = ThreeRef.current;
       
-      // Convert degrees to radians
+      // Animation parameters
+      const animationDuration = 2000; // 2 seconds
+      const startTime = Date.now();
+      
+      // Get current camera state
+      const startPosition = camera.position.clone();
+      const startQuaternion = camera.quaternion.clone();
+      const startRadius = startPosition.length();
+      
+      // Calculate target position
+      const targetRadius = EARTH_RADIUS * 1.5;
       const lat = focusLatitude * Math.PI / 180;
       const lon = focusLongitude * Math.PI / 180 + Math.PI/2;
+      const phi = Math.PI / 2 - lat;
+      const theta = lon;
       
-      console.log(`📐 SPHERICAL CALC: lat=${lat.toFixed(4)} rad, lon=${lon.toFixed(4)} rad, radius=${cameraRadius.toFixed(0)}`);
+      const targetSpherical = new Spherical(targetRadius, phi, theta);
+      const targetPosition = new Vector3();
+      targetPosition.setFromSpherical(targetSpherical);
       
-      // Create spherical coordinates (radius, phi, theta)
-      // Note: Three.js uses phi=polar angle from Y+ axis, theta=azimuthal angle from X+ axis
-      const phi = Math.PI / 2 - lat; // Convert latitude to polar angle
-      const theta = lon; // Longitude directly maps to azimuthal angle
+      // Create a temporary camera to get target quaternion
+      const tempCamera = camera.clone();
+      tempCamera.position.copy(targetPosition);
+      tempCamera.lookAt(0, 0, 0);
+      const targetQuaternion = tempCamera.quaternion.clone();
       
-      const spherical = new Spherical(cameraRadius, phi, theta);
-      const cameraPosition = new Vector3();
-      cameraPosition.setFromSpherical(spherical);
+      // Peak altitude for the arc (2.5x Earth radius)
+      const peakRadius = EARTH_RADIUS * 2.5;
       
-      console.log(`📹 CAMERA VECTOR: (${cameraPosition.x.toFixed(0)}, ${cameraPosition.y.toFixed(0)}, ${cameraPosition.z.toFixed(0)})`);
-      console.log(`📏 DISTANCE CHECK: ${cameraPosition.length().toFixed(0)} = ${cameraRadius.toFixed(0)}`);
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / animationDuration, 1);
+        
+        // Use easing function for smooth animation
+        const easeInOutCubic = (t: number) => {
+          return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        };
+        const easedProgress = easeInOutCubic(progress);
+        
+        // Calculate radius with arc trajectory
+        // Goes from startRadius -> peakRadius -> targetRadius
+        let currentRadius;
+        if (progress < 0.5) {
+          // First half: zoom out
+          const halfProgress = progress * 2;
+          currentRadius = startRadius + (peakRadius - startRadius) * easeInOutCubic(halfProgress);
+        } else {
+          // Second half: zoom in
+          const halfProgress = (progress - 0.5) * 2;
+          currentRadius = peakRadius + (targetRadius - peakRadius) * easeInOutCubic(halfProgress);
+        }
+        
+        // Spherical interpolation for position
+        const currentQuaternion = new Quaternion();
+        currentQuaternion.slerpQuaternions(startQuaternion, targetQuaternion, easedProgress);
+        
+        // Apply the interpolated rotation to a unit vector and scale by radius
+        const unitVector = new Vector3(1, 0, 0);
+        unitVector.applyQuaternion(currentQuaternion);
+        camera.position.copy(unitVector.multiplyScalar(currentRadius));
+        
+        // Update camera orientation
+        camera.quaternion.copy(currentQuaternion);
+        
+        // Update controls
+        if (controls.target) {
+          controls.target.set(0, 0, 0);
+        }
+        controls.update();
+        
+        if (progress < 1) {
+          focusAnimationIdRef.current = requestAnimationFrame(animate);
+        } else {
+          console.log(`✅ CAMERA ANIMATION COMPLETE: Final position at (${focusLatitude}°, ${focusLongitude}°)`);
+        }
+      };
       
-      // Set camera position using Three.js helper result
-      camera.position.copy(cameraPosition);
+      animate();
       
-      // Point camera toward Earth center (0,0,0)
-      camera.lookAt(0, 0, 0);
-      
-      // Update controls to match new camera position
-      if (controls.target) {
-        controls.target.set(0, 0, 0);
-      }
-      controls.update();
-      
-      console.log(`✅ CAMERA POSITIONED: Final position (${cameraPosition.x.toFixed(0)}, ${cameraPosition.y.toFixed(0)}, ${cameraPosition.z.toFixed(0)}) looking at Earth center`);
     } else {
-      // For orbit mode, use local coordinate system (unchanged)
+      // For orbit mode, animate to target position
       const SCENE_UNITS_PER_METER = 0.01;
       const METERS_PER_DEGREE_LAT = 111320;
       const latRad = latitude * Math.PI / 180;
@@ -640,17 +691,41 @@ export default function MapComponent({
       const deltaLonMeters = (focusLongitude - longitude) * METERS_PER_DEGREE_LON;
       const deltaLatMeters = (focusLatitude - latitude) * METERS_PER_DEGREE_LAT;
       
-      const x = deltaLonMeters * SCENE_UNITS_PER_METER;
-      const z = deltaLatMeters * SCENE_UNITS_PER_METER;
-      const y = 100000 * SCENE_UNITS_PER_METER;
+      const targetX = deltaLonMeters * SCENE_UNITS_PER_METER;
+      const targetZ = deltaLatMeters * SCENE_UNITS_PER_METER;
+      const targetY = 100000 * SCENE_UNITS_PER_METER;
       
-      camera.position.set(x, y, z);
-      if (controls.target) {
-        controls.target.set(x, 0, z);
-      }
-      controls.update();
+      // Animation for orbit mode
+      const animationDuration = 2000;
+      const startTime = Date.now();
+      const startPosition = camera.position.clone();
+      const startTarget = controls.target ? controls.target.clone() : new ThreeRef.current.Vector3();
       
-      console.log(`Orbit camera positioned at (${x.toFixed(0)}, ${y.toFixed(0)}, ${z.toFixed(0)})`);
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / animationDuration, 1);
+        
+        const easeInOutCubic = (t: number) => {
+          return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        };
+        const easedProgress = easeInOutCubic(progress);
+        
+        // Interpolate position
+        camera.position.lerpVectors(startPosition, new ThreeRef.current.Vector3(targetX, targetY, targetZ), easedProgress);
+        
+        // Interpolate target
+        if (controls.target) {
+          controls.target.lerpVectors(startTarget, new ThreeRef.current.Vector3(targetX, 0, targetZ), easedProgress);
+        }
+        
+        controls.update();
+        
+        if (progress < 1) {
+          focusAnimationIdRef.current = requestAnimationFrame(animate);
+        }
+      };
+      
+      animate();
     }
     
   }, [focusTrigger, focusLatitude, focusLongitude, engineReady, viewMode, latitude, longitude]);
@@ -718,9 +793,12 @@ export default function MapComponent({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      // Clean up animation frame
+      // Clean up animation frames
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
+      }
+      if (focusAnimationIdRef.current) {
+        cancelAnimationFrame(focusAnimationIdRef.current);
       }
 
       // Clean up plot spheres
