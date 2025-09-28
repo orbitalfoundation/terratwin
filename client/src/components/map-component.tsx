@@ -84,7 +84,7 @@ export default function MapComponent({
   const EARTH_RADIUS = 6378160;
   const CAMERA_NEAR_CLIP = viewMode === "globe" ? 0.1 : 200;
   const CAMERA_FAR_CLIP = viewMode === "globe" ? 160000000 : 2600000;
-  const CAMERA_MIN_DISTANCE = viewMode === "globe" ? EARTH_RADIUS + 10000 : 500; // Minimum 10km above Earth surface
+  const CAMERA_MIN_DISTANCE = viewMode === "globe" ? 10000 : 500; // Minimum distance from surface
   const CAMERA_MAX_DISTANCE = viewMode === "globe" ? 160000000 : 2000000;
 
   // Define render layers
