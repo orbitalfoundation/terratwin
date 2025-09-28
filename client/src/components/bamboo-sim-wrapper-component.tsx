@@ -35,7 +35,7 @@ class BambooSimWrapper {
 	isRunning = false
 	currentDay = 0
 	speed = 1
-	rate = 10
+	rate = 1
 	animationId = null
 	days = 1
 
@@ -130,7 +130,8 @@ class BambooSimWrapper {
 	}
 
 	simulationStep() {
-		for (let i = 0; i < this.days; i++) {
+		// Run simulation for 'speed' number of days
+		for (let i = 0; i < this.speed; i++) {
 			sys({step: 1});
 			this.currentDay++;
 		}
@@ -141,8 +142,8 @@ class BambooSimWrapper {
 
 	animate() {
 		if (!this.isRunning) return
-		this.simulationStep(this.speed)
-		this.animationId = setTimeout(() => this.animate(), this.rate)
+		this.simulationStep()
+		this.animationId = setTimeout(() => this.animate(), 100) // Fixed 100ms interval
 	}
 
 	start() {
@@ -159,9 +160,11 @@ class BambooSimWrapper {
 	}
 
 	step(days = 1) {
-		this.days = days;
+		// Temporarily store current speed
+		const originalSpeed = this.speed;
+		this.speed = days;
 		this.simulationStep();
-		this.days = 1; // Reset to default
+		this.speed = originalSpeed; // Restore original speed
 	}
 
 	reset() {
@@ -318,8 +321,8 @@ return (
 
 <div className="flex items-center space-x-2 ml-4 border-l border-border pl-4">
 <span className="text-sm text-muted-foreground">Speed:</span>
-<input type="range" min="1" max="10" value={speed} onChange={handleSpeedChange} className="w-24" />
-<span className="text-sm w-8 text-foreground">{speed}x</span>
+<input type="range" min="1" max="60" value={speed} onChange={handleSpeedChange} className="w-32" />
+<span className="text-sm w-12 text-foreground">{speed}x</span>
 </div>
 </div>
 </div>
