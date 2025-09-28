@@ -5,6 +5,7 @@ import { sys } from '@/_orbital/services-sys/sys.js';
 import { volume_service } from '@/_orbital/services-volume/volume.js';
 import { prototypical_dem } from '@/_orbital/entities/dem/dem.js';
 import { prototypical_plot } from '@/_orbital/entities/bamboo/plot.js';
+import type { Plot } from '@/shared/schema';
 
 // default dem
 const DEM_STATIC = {
@@ -29,6 +30,7 @@ class BambooSimWrapper {
 	dem = null
 	plot = null
 	onTick = null
+	plotData = null
 
 	isRunning = false
 	currentDay = 0
@@ -37,9 +39,10 @@ class BambooSimWrapper {
 	animationId = null
 	days = 1
 
-	constructor(_domElement, _onTick = null) {
+	constructor(_domElement, _onTick = null, _plotData = null) {
 
 		this.onTick = _onTick
+		this.plotData = _plotData
 	
 		// register 'volume' - a 3d viewer
 		volume_service.domElement = _domElement
@@ -49,10 +52,10 @@ class BambooSimWrapper {
 		sys({ volume: { shape: 'camera', xyz: [50, 0, 50] } });
 
 		// regenerate orbital simulation plot from current pgsql plot parameters
-		this.regeneratePlot()
+		this.regeneratePlot(this.plotData)
 	}
 
-	async regeneratePlot() {
+	async regeneratePlot(plotData = null) {
 
 		// remove previous objects from the simulation
 		if(this.plot) {
@@ -77,12 +80,51 @@ class BambooSimWrapper {
 		sys(this.dem);
 
 		// build plot and register with volume
-		// @todo should pull in properties from pgsql plot and use them
 		this.plot = deepClone(prototypical_plot);
-		this.plot.id = 1;
+		this.plot.id = plotData?.id || 1;
 		this.plot.field.width = 100;
 		this.plot.field.depth = 100;
-		this.plot.field.ENABLE_INTERCROPPING = false;
+		
+		// Copy properties from schema if provided
+		if (plotData) {
+			// Basic properties
+			this.plot.field.speciesDensity = plotData.speciesDensity || 'medium';
+			this.plot.field.harvestYears = plotData.harvestYears || 5;
+			this.plot.field.harvestRate = plotData.harvestRate || 20;
+			
+			// Environment properties
+			this.plot.field.elevation = plotData.elevation || 0;
+			this.plot.field.slopeFacing = plotData.slopeFacing || 0;
+			this.plot.field.steepness = plotData.steepness || 0;
+			this.plot.field.rainfall = plotData.rainfall || 0;
+			this.plot.field.drainage = plotData.drainage || 5000;
+			
+			// Soil properties
+			this.plot.field.soilSalts = plotData.soilSalts || 50;
+			this.plot.field.soilNitrogen = plotData.soilNitrogen || 50;
+			this.plot.field.soilMicrobialMass = plotData.soilMicrobialMass || 50;
+			this.plot.field.soilEarthworms = plotData.soilEarthworms || 50;
+			this.plot.field.soilAcidity = plotData.soilAcidity || 7.0;
+			this.plot.field.soilFertility = plotData.soilFertility || 50;
+			
+			// Pest properties (convert from string to boolean)
+			this.plot.field.pestBambooBorer = plotData.pestBambooBorer === 'true';
+			this.plot.field.pestAphids = plotData.pestAphids === 'true';
+			this.plot.field.pestFungalPathogens = plotData.pestFungalPathogens === 'true';
+			
+			// Intervention properties (convert from string to boolean)
+			this.plot.field.interventionWeeding = plotData.interventionWeeding === 'true';
+			this.plot.field.interventionMulching = plotData.interventionMulching === 'true';
+			this.plot.field.interventionFertilization = plotData.interventionFertilization === 'true';
+			this.plot.field.interventionPestControl = plotData.interventionPestControl === 'true';
+			
+			// Intercropping properties (convert from string to boolean)
+			this.plot.field.intercroppingLegumes = plotData.intercroppingLegumes === 'true';
+			this.plot.field.intercroppingHerbs = plotData.intercroppingHerbs === 'true';
+			this.plot.field.intercroppingSpecialtyCrops = plotData.intercroppingSpecialtyCrops === 'true';
+			this.plot.field.intercroppingAnimals = plotData.intercroppingAnimals === 'true';
+		}
+		
 		this.plot.demData = this.dem && this.dem.volume.demData ? this.dem.volume.demData : null
 		sys(this.plot);
 	}
@@ -125,10 +167,15 @@ class BambooSimWrapper {
 	reset() {
 		this.pause();
 		this.currentDay = 0;
-		regeneratePlot();
+		this.regeneratePlot(this.plotData);
 		if (this.onTick) {
 			this.onTick();
 		}
+	}
+	
+	updatePlotData(newPlotData) {
+		this.plotData = newPlotData;
+		this.regeneratePlot(this.plotData);
 	}
 }
 
@@ -138,7 +185,11 @@ class BambooSimWrapper {
 /// HTML Presentation of Sim
 ///
 
-export function BambooSimWrapperComponent() {
+interface BambooSimWrapperComponentProps {
+	plotData?: Plot | null;
+}
+
+export function BambooSimWrapperComponent({ plotData }: BambooSimWrapperComponentProps) {
 	const ref = useRef<HTMLDivElement | null>(null);
 	const simRef = useRef<BambooSimWrapper | null>(null);
 	const [speed, setSpeed] = useState(1);
@@ -155,7 +206,7 @@ export function BambooSimWrapperComponent() {
 	useEffect(() => {
 		if (!ref.current) return;
 		if (!simRef.current) {
-			simRef.current = new BambooSimWrapper(ref.current, updateStats);
+			simRef.current = new BambooSimWrapper(ref.current, updateStats, plotData);
 		}
 		
 		// Cleanup function
@@ -165,6 +216,13 @@ export function BambooSimWrapperComponent() {
 			}
 		};
 	}, []);
+	
+	// Update plot data when it changes
+	useEffect(() => {
+		if (simRef.current && plotData) {
+			simRef.current.updatePlotData(plotData);
+		}
+	}, [plotData]);
 
 	const handleStart = () => simRef.current?.start();
 	const handlePause = () => simRef.current?.pause();

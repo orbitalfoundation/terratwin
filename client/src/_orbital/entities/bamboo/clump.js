@@ -151,8 +151,13 @@ prototypical_dendrocalamus_asper_clump.oninit = function(plot) {
 // Harvesting system
 prototypical_dendrocalamus_asper_clump.onharvest = function() {
 	const self = this
-	const harvestableAge = this.clump.HARVEST_FIRST_DAY
-	const harvestPercent = this.clump.HARVEST_PERCENT / 100
+	// Use plot's harvest settings if available, otherwise use defaults
+	const harvestableAge = (this.plot && this.plot.field.harvestYears) 
+		? this.plot.field.harvestYears * 365 
+		: this.clump.HARVEST_FIRST_DAY
+	const harvestPercent = (this.plot && this.plot.field.harvestRate) 
+		? this.plot.field.harvestRate / 100 
+		: this.clump.HARVEST_PERCENT / 100
 	
 	// Find mature culms
 	const matureCulms = self.children.filter(culm => culm.culm.age >= harvestableAge)

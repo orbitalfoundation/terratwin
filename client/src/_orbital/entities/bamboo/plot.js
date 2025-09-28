@@ -28,6 +28,33 @@ export const prototypical_plot = {
 		USD_PER_MEGAJOULE: 0.0278, // Based on $0.10 per kWh (1 kWh = 3.6 MJ)
 		ENABLE_INTERCROPPING: false,
 		COFFEE_ROW_SPACING: 4,  // Place coffee rows every 4 meters
+		
+		// Schema-based properties with defaults
+		speciesDensity: 'medium', // low, medium, high
+		harvestYears: 5,
+		harvestRate: 20, // percentage
+		elevation: 0,
+		slopeFacing: 0,
+		steepness: 0,
+		rainfall: 0,
+		drainage: 5000,
+		soilSalts: 50,
+		soilNitrogen: 50,
+		soilMicrobialMass: 50,
+		soilEarthworms: 50,
+		soilAcidity: 7.0,
+		soilFertility: 50,
+		pestBambooBorer: false,
+		pestAphids: false,
+		pestFungalPathogens: false,
+		interventionWeeding: false,
+		interventionMulching: false,
+		interventionFertilization: false,
+		interventionPestControl: false,
+		intercroppingLegumes: false,
+		intercroppingHerbs: false,
+		intercroppingSpecialtyCrops: false,
+		intercroppingAnimals: false,
 	},
 	
 	// Statistics
@@ -113,9 +140,18 @@ prototypical_plot.oninit = function() {
 	const ref = prototypical_dendrocalamus_asper_clump
 	let counter = 1
 	
+	// Calculate spacing based on density setting
+	const densitySpacingMap = {
+		'low': 12,    // ~70 clumps per hectare
+		'medium': 8,  // ~150 clumps per hectare (default)
+		'high': 6     // ~280 clumps per hectare
+	}
+	
+	const baseSpacing = densitySpacingMap[plot.field.speciesDensity] || densitySpacingMap['medium']
+	
 	// Ensure minimum spacing accounts for clump width
-	const minSpacing = Math.max(ref.clump.CLUMP_GAP_PER_AXIS, ref.clump.CLUMP_MAX_WIDTH)
-	console.log(`Creating clumps with ${minSpacing}m spacing (clump width: ${ref.clump.CLUMP_MAX_WIDTH}m)...`)
+	const minSpacing = Math.max(baseSpacing, ref.clump.CLUMP_MAX_WIDTH)
+	console.log(`Creating clumps with ${minSpacing}m spacing for ${plot.field.speciesDensity} density (clump width: ${ref.clump.CLUMP_MAX_WIDTH}m)...`)
 	
 	// Start with offset to center clumps in plot
 	const startOffset = minSpacing / 2
@@ -154,8 +190,8 @@ prototypical_plot.oninit = function() {
 	console.log(`  Total clumps created: ${plot.children.filter(c => c.clump).length}`)
 	console.log(`  Actual density: ${(plot.children.filter(c => c.clump).length / (plot.field.width * plot.field.depth / 10000)).toFixed(2)} clumps per hectare`)
 	
-	// Add coffee rows if intercropping is enabled
-	if (plot.field.ENABLE_INTERCROPPING) {
+	// Add coffee rows if intercropping specialty crops is enabled
+	if (plot.field.intercroppingSpecialtyCrops) {
 		console.log(`\nAdding coffee rows for intercropping...`)
 		let coffeeCounter = 1
 		
