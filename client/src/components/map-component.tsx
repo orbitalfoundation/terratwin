@@ -82,7 +82,7 @@ export default function MapComponent({
 
   // Constants - adjusted based on view mode
   const EARTH_RADIUS = 6378160;
-  const CAMERA_NEAR_CLIP = viewMode === "globe" ? 1 : 200;
+  const CAMERA_NEAR_CLIP = viewMode === "globe" ? 0.1 : 200;
   const CAMERA_FAR_CLIP = viewMode === "globe" ? 160000000 : 2600000;
   const CAMERA_MIN_DISTANCE = viewMode === "globe" ? EARTH_RADIUS + 10000 : 500; // Minimum 10km above Earth surface
   const CAMERA_MAX_DISTANCE = viewMode === "globe" ? 160000000 : 2000000;
@@ -360,6 +360,16 @@ export default function MapComponent({
           // Set minimum and maximum distance for globe controls
           controls.minDistance = CAMERA_MIN_DISTANCE;
           controls.maxDistance = CAMERA_MAX_DISTANCE;
+          // Additional GlobeControls specific settings to allow closer zoom
+          if ('minHeight' in controls) {
+            controls.minHeight = 10000; // 10km minimum height above surface
+          }
+          if ('minZoom' in controls) {
+            controls.minZoom = 0; // Allow maximum zoom in
+          }
+          if ('maxZoom' in controls) {
+            controls.maxZoom = Infinity; // No zoom out limit
+          }
         } else {
           controls = new OrbitControls(camera, renderer.domElement);
           controls.minDistance = CAMERA_MIN_DISTANCE;
