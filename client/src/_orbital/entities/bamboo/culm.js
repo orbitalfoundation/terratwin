@@ -114,10 +114,10 @@ prototypical_dendrocalamus_asper_culm.onstep = function(daysElapsed) {
         g += edgeBrightness * 80
         b += edgeBrightness * 20
         
-        // Add random variation (±15% for each channel)
-        r += (random2 - 0.5) * 60 // ±30
-        g += (random3 - 0.5) * 60 // ±30
-        b += (random1 - 0.5) * 40 // ±20
+        // Add random variation (±20% for each channel for more diversity)
+        r += (random2 - 0.5) * 80 // ±40
+        g += (random3 - 0.5) * 80 // ±40
+        b += (random1 - 0.5) * 60 // ±30
         
         // Ensure values stay within valid range [0, 255]
         r = Math.max(0, Math.min(255, Math.floor(r)))
