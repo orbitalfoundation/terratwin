@@ -358,7 +358,7 @@ export default function MapComponent({
           controls = new GlobeControls(scene, camera, renderer.domElement);
           controls.enableDamping = true;
           // Set minimum and maximum distance for globe controls
-          controls.minDistance = CAMERA_MIN_DISTANCE;
+          controls.minDistance = 10000;
           controls.maxDistance = CAMERA_MAX_DISTANCE;
           // Additional GlobeControls specific settings to allow closer zoom
           if ('minHeight' in controls) {
