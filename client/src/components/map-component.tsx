@@ -779,12 +779,6 @@ export default function MapComponent({
     if (focusLatitude === undefined || focusLongitude === undefined) return;
 
     focusOnLocation(focusLatitude, focusLongitude);
-
-    // Cancel any existing focus animation
-    if (focusAnimationIdRef.current) {
-      cancelAnimationFrame(focusAnimationIdRef.current);
-    }
-
   }, [focusTrigger, focusLatitude, focusLongitude, engineReady, viewMode, latitude, longitude]);
 
   // Animation loop
