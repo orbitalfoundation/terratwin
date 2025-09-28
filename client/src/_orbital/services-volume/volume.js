@@ -379,6 +379,15 @@ export const volume_service = {
 				mesh.rotation.x = vol.ypr[1]; // Pitch
 				mesh.rotation.z = vol.ypr[2]; // Roll
 			}
+			
+			// Update material color if it has changed
+			if (vol.color !== undefined && mesh.material && !mesh.material.map) {
+				// Only update color for materials without textures
+				const currentColor = mesh.material.color.getHex();
+				if (currentColor !== vol.color) {
+					mesh.material.color.setHex(vol.color);
+				}
+			}
 		});
 	},
 	
