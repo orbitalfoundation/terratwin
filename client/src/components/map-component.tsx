@@ -28,6 +28,7 @@ interface MapComponentProps {
   focusLatitude?: number;
   focusLongitude?: number;
   focusTrigger?: number; // Increment this to trigger a focus animation
+  onInitialFocus?: (lat: number, lon: number) => void; // Callback for initial focus
 }
 
 // Debug logging utility
@@ -56,7 +57,8 @@ export default function MapComponent({
   focusLatitude,
   focusLongitude,
   focusTrigger = 0,
-  onError
+  onError,
+  onInitialFocus
 }: MapComponentProps) {
   const { data: cesiumData } = useQuery<{cesiumKey: string | null}>({
     queryKey: ["/api/cesium-key"],
@@ -516,7 +518,7 @@ export default function MapComponent({
     updateBoundaryClipping();
   }, [enableBoundary, boundaryPoints, engineReady]);
 
-  // Handle plot visualization
+  // Handle plot visualization and initial focus
   useEffect(() => {
     if (!engineReady || !sceneRef.current || !ThreeRef.current || plots.length === 0) return;
 
@@ -609,7 +611,20 @@ export default function MapComponent({
     };
 
     updatePlots();
-  }, [plots, engineReady, viewMode, latitude, longitude]);
+
+    // Set up initial focus timer if we have plots and haven't focused yet
+    if (plots.length > 0 && focusTrigger === 0) {
+      const timer = setTimeout(() => {
+        // Focus on the first plot
+        const firstPlot = plots[0];
+        if (onInitialFocus) {
+          onInitialFocus(firstPlot.latitude, firstPlot.longitude);
+        }
+      }, 3000); // 3 second delay
+
+      return () => clearTimeout(timer);
+    }
+  }, [plots, engineReady, viewMode, latitude, longitude, focusTrigger, onInitialFocus]);
 
 
   // Camera focus functionality - smooth animation with zoom out/in
