@@ -612,7 +612,7 @@ export default function MapComponent({
       startSpherical.setFromVector3(startPosition);
       
       // Calculate target position in spherical coordinates
-      const targetRadius = EARTH_RADIUS * 1.5;
+      const targetRadius = EARTH_RADIUS + 10000; // 10km above surface
       const lat = focusLatitude * Math.PI / 180;
       const lon = focusLongitude * Math.PI / 180 + Math.PI/2;
       const targetPhi = Math.PI / 2 - lat;
