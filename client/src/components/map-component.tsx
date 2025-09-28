@@ -562,10 +562,9 @@ export default function MapComponent({
             Math.sin(lat)
           );
           
-          // Default torus lies in XY plane (normal along Z), we need to rotate it
-          // to align with the surface normal
+          // Default torus lies in XY plane (normal along Z)
+          // We just need to align its Z axis with the surface normal
           torus.lookAt(torus.position.clone().add(normal));
-          torus.rotateX(Math.PI / 2); // Rotate to lie flat on surface
           
         } else {
           // For orbit view, use the same meter-based calculations as focus system
