@@ -285,9 +285,10 @@ export function BambooSimWrapperComponent({ plotData }: BambooSimWrapperComponen
 
 return (
 <div className="flex flex-col h-screen">
-<div className="bg-secondary border-b border-border px-4 py-3">
-<div className="container mx-auto flex items-center justify-between">
-
+<div className="bg-secondary border-b border-border px-4 py-2">
+<div className="container mx-auto">
+{/* First row: Controls and Speed */}
+<div className="flex items-center justify-between mb-2">
 <div className="flex items-center space-x-2">
 <button onClick={handleStart} className="p-2 bg-white text-black hover:bg-gray-200 rounded transition" title="Start" data-testid="button-start-simulation">
 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
@@ -321,7 +322,9 @@ return (
 <span className="text-sm w-8 text-foreground">{speed}x</span>
 </div>
 </div>
+</div>
 
+{/* Second row: Stats */}
 <div className="flex items-center space-x-6 text-sm">
 <div className="flex items-center space-x-2">
 <span className="text-muted-foreground">Day:</span>
