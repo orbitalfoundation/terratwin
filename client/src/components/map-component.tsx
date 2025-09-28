@@ -212,6 +212,7 @@ export default function MapComponent({
           Vector3,
           Spherical,
           SphereGeometry,
+          TorusGeometry,
           MeshBasicMaterial,
           Mesh,
           BufferGeometry,
@@ -510,46 +511,62 @@ export default function MapComponent({
     if (!engineReady || !sceneRef.current || !ThreeRef.current || plots.length === 0) return;
 
     const updatePlots = () => {
-      const { SphereGeometry, MeshBasicMaterial, Mesh, Vector3 } = ThreeRef.current;
+      const { TorusGeometry, MeshBasicMaterial, Mesh, Vector3 } = ThreeRef.current;
       
-      // Clear existing plot spheres
-      plotSpheresRef.current.forEach(sphere => {
+      // Clear existing plot markers
+      plotSpheresRef.current.forEach(marker => {
         if (tilesRef.current?.group) {
-          tilesRef.current.group.remove(sphere); // Remove from tiles group where they were added
+          tilesRef.current.group.remove(marker); // Remove from tiles group where they were added
         }
-        sphere.geometry.dispose();
-        sphere.material.dispose();
+        marker.geometry.dispose();
+        marker.material.dispose();
       });
       plotSpheresRef.current = [];
 
-      // Create spheres for each plot
+      // Create torus markers for each plot
       plots.forEach(plot => {
-        // Small sphere size for better visibility
-        const sphereSize = viewMode === "globe" ? EARTH_RADIUS * 0.01 : 1000;
+        // Torus dimensions for better visibility
+        const torusRadius = viewMode === "globe" ? EARTH_RADIUS * 0.005 : 500; // Main radius
+        const tubeRadius = viewMode === "globe" ? EARTH_RADIUS * 0.0005 : 50; // Tube thickness
         
-        // Create sphere geometry
-        const sphereGeometry = new SphereGeometry(sphereSize, 16, 16);
+        // Create torus geometry
+        const torusGeometry = new TorusGeometry(torusRadius, tubeRadius, 8, 24);
         
-        // All spheres are green
-        const sphereMaterial = new MeshBasicMaterial({ 
+        // All markers are green
+        const torusMaterial = new MeshBasicMaterial({ 
           color: 0x00ff00, // Green
           opacity: 0.8,
           transparent: true
         });
         
-        const sphere = new Mesh(sphereGeometry, sphereMaterial);
+        const torus = new Mesh(torusGeometry, torusMaterial);
         
         if (viewMode === "globe") {
           // For globe view, position on the surface
           const lat = plot.latitude * Math.PI / 180;
           const lon = plot.longitude * Math.PI / 180;
-          const radius = EARTH_RADIUS * 1.01; // Slightly above surface
+          const radius = EARTH_RADIUS * 1.002; // Slightly above surface
           
-          sphere.position.set(
+          // Calculate position on sphere
+          torus.position.set(
             radius * Math.cos(lat) * Math.cos(lon),
             radius * Math.cos(lat) * Math.sin(lon),
             radius * Math.sin(lat)
           );
+          
+          // Orient the torus to lie flat on the sphere surface
+          // The normal vector at this point on the sphere
+          const normal = new Vector3(
+            Math.cos(lat) * Math.cos(lon),
+            Math.cos(lat) * Math.sin(lon),
+            Math.sin(lat)
+          );
+          
+          // Default torus lies in XY plane (normal along Z), we need to rotate it
+          // to align with the surface normal
+          torus.lookAt(torus.position.clone().add(normal));
+          torus.rotateX(Math.PI / 2); // Rotate to lie flat on surface
+          
         } else {
           // For orbit view, use the same meter-based calculations as focus system
           const SCENE_UNITS_PER_METER = 0.01; // Same scale as focus system
@@ -567,15 +584,17 @@ export default function MapComponent({
           const plotZ = deltaLatMeters * SCENE_UNITS_PER_METER;
           const plotY = 10 * SCENE_UNITS_PER_METER; // Small height above surface (10 meters)
           
-          sphere.position.set(plotX, plotY, plotZ);
+          torus.position.set(plotX, plotY, plotZ);
+          // For orbit view, torus lies flat (parallel to ground)
+          // No rotation needed as default orientation is correct
         }
         
-        sphere.layers.set(PLOTS_LAYER);
-        sphere.userData = { plot };
+        torus.layers.set(PLOTS_LAYER);
+        torus.userData = { plot };
         
         if (tilesRef.current?.group) {
-          tilesRef.current.group.add(sphere); // Add to tiles group for proper coordinate frame
-          plotSpheresRef.current.push(sphere);
+          tilesRef.current.group.add(torus); // Add to tiles group for proper coordinate frame
+          plotSpheresRef.current.push(torus);
         }
       });
     };
