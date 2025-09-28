@@ -65,7 +65,7 @@ class BambooSimWrapper {
 				})
 				sys({obliterate:true,...clump})
 			})
-			sys({obliterate:true,...plot})
+			sys({obliterate:true,...this.plot})
 		}
 
 		if(this.dem) {
