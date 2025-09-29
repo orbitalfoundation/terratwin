@@ -14,6 +14,7 @@ import { StoryOverlay } from "@/components/story-overlay";
 function Router() {
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <StoryOverlay />
       <Navigation />
       <Switch>
         <Route path="/" component={Dashboard} />
@@ -33,7 +34,6 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Router />
-          <StoryOverlay />
         </TooltipProvider>
       </StoryProvider>
     </QueryClientProvider>

@@ -32,6 +32,7 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
   const timeoutRef = useRef<NodeJS.Timeout>();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioUrlsRef = useRef<Map<string, string>>(new Map());
+  const isActiveRef = useRef(false);
 
   const storySteps: StoryStep[] = [
     {
@@ -110,57 +111,72 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
     }
   ];
 
-  const speak = useCallback(async (text: string) => {
+  const speak = useCallback(async (text: string): Promise<void> => {
     if (!isSpeaking) return;
 
     // Stop any current audio
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.currentTime = 0;
       audioRef.current = null;
     }
 
     try {
       // Check if we already have this audio cached
       const cachedUrl = audioUrlsRef.current.get(text);
+      let audioUrl: string;
+      
       if (cachedUrl) {
-        const audio = new Audio(cachedUrl);
-        audioRef.current = audio;
-        await audio.play();
-        return;
+        audioUrl = cachedUrl;
+      } else {
+        // Fetch audio from API
+        const response = await fetch("/api/tts", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text }),
+        });
+
+        if (!response.ok) {
+          console.error("TTS API error:", response.statusText);
+          return;
+        }
+
+        const audioBlob = await response.blob();
+        audioUrl = URL.createObjectURL(audioBlob);
+        
+        // Cache the URL
+        audioUrlsRef.current.set(text, audioUrl);
       }
-
-      // Fetch audio from API
-      const response = await fetch("/api/tts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ text }),
-      });
-
-      if (!response.ok) {
-        console.error("TTS API error:", response.statusText);
-        return;
-      }
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
       
-      // Cache the URL
-      audioUrlsRef.current.set(text, audioUrl);
-      
-      // Play the audio
+      // Play the audio and wait for completion
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
-      await audio.play();
+      
+      return new Promise((resolve) => {
+        audio.addEventListener('ended', () => {
+          resolve();
+        });
+        audio.addEventListener('error', () => {
+          console.error('Audio playback error');
+          resolve(); // Continue even if audio fails
+        });
+        audio.play().catch(error => {
+          console.error('Error playing audio:', error);
+          resolve(); // Continue even if play fails
+        });
+      });
     } catch (error) {
-      console.error("Error playing TTS audio:", error);
+      console.error("Error in TTS:", error);
     }
   }, [isSpeaking]);
 
   const stopSpeech = useCallback(() => {
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.src = ''; // Clear the source to stop loading
       audioRef.current = null;
     }
   }, []);
@@ -175,33 +191,45 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
     setCurrentStep(stepIndex);
     setCurrentCaption(step.caption);
     
-    // Speak the caption
-    speak(step.caption);
-
     // Execute the action if any
     if (step.action) {
       await step.action();
     }
 
-    // Schedule next step
-    timeoutRef.current = setTimeout(() => {
+    // Speak the caption and wait for completion if speaking
+    if (isSpeaking) {
+      await speak(step.caption);
+      // Add a small delay after speech completes
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } else {
+      // If not speaking, use the original duration
+      await new Promise(resolve => {
+        timeoutRef.current = setTimeout(resolve, step.duration);
+      });
+    }
+
+    // Move to next step only if story is still active
+    if (isActiveRef.current) {
       runStep(stepIndex + 1);
-    }, step.duration);
-  }, [speak, storySteps]);
+    }
+  }, [speak, storySteps, isSpeaking]);
 
   const startStory = useCallback(() => {
     setIsActive(true);
+    isActiveRef.current = true;
     setCurrentStep(0);
     runStep(0);
   }, [runStep]);
 
   const stopStory = useCallback(() => {
     setIsActive(false);
+    isActiveRef.current = false;
     setCurrentCaption("");
     setCurrentStep(0);
     stopSpeech();
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
     }
   }, [stopSpeech]);
 

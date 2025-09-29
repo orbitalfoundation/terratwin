@@ -29,8 +29,8 @@ export function StoryOverlay() {
   return (
     <div
       className={cn(
-        "fixed inset-x-0 bottom-0 z-[100] transition-all duration-300",
-        isActive ? "translate-y-0 opacity-100" : "translate-y-full opacity-0"
+        "fixed inset-x-0 top-0 z-[100] transition-all duration-300",
+        isActive ? "translate-y-0 opacity-100" : "-translate-y-full opacity-0"
       )}
     >
       <div className="bg-background/95 backdrop-blur-sm border-t border-border shadow-lg">
