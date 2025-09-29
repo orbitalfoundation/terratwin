@@ -7,6 +7,52 @@ import { HttpError } from "./http-error";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Text-to-speech endpoint
+  app.post("/api/tts", async (req, res) => {
+    try {
+      const { text } = req.body;
+      
+      if (!text) {
+        return res.status(400).json({ message: "Text is required" });
+      }
+
+      const openaiApiKey = process.env.OPENAI_API_KEY;
+      if (!openaiApiKey) {
+        return res.status(500).json({ message: "OpenAI API key not configured" });
+      }
+
+      const response = await fetch("https://api.openai.com/v1/audio/speech", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${openaiApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "tts-1",
+          input: text,
+          voice: "alloy",
+          response_format: "mp3",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.statusText}`);
+      }
+
+      const audioBuffer = await response.arrayBuffer();
+      
+      res.set({
+        "Content-Type": "audio/mpeg",
+        "Content-Length": audioBuffer.byteLength.toString(),
+      });
+      
+      res.send(Buffer.from(audioBuffer));
+    } catch (error) {
+      console.error("TTS error:", error);
+      res.status(500).json({ message: "Failed to generate speech" });
+    }
+  });
+
   // Get all plots
   app.get("/api/plots", async (req, res) => {
     try {
