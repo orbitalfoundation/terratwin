@@ -251,7 +251,7 @@ export default function PlotDetail() {
           </Card>
         </div>
 
-        <div className="w-full bg-muted">
+        <div className="w-full bg-muted bamboo-sim-wrapper-component">
           {/* Simulation */}
           <BambooSimWrapperComponent/>
         </div>

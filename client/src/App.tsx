@@ -8,6 +8,8 @@ import Dashboard from "@/pages/dashboard";
 import AddPlot from "@/pages/add-plot";
 import PlotDetail from "@/pages/plot-detail";
 import Navigation from "@/components/navigation";
+import { StoryProvider } from "@/hooks/use-story";
+import { StoryOverlay } from "@/components/story-overlay";
 
 function Router() {
   return (
@@ -27,10 +29,13 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <StoryProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+          <StoryOverlay />
+        </TooltipProvider>
+      </StoryProvider>
     </QueryClientProvider>
   );
 }
