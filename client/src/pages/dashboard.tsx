@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Plus, Trash2, Play } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import PlotCard from "@/components/plot-card";
@@ -9,12 +9,10 @@ import MapComponent from "@/components/map-component";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Plot } from "@shared/schema";
-import { useStory } from "@/hooks/use-story";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { startStory, isActive: isStoryActive } = useStory();
   
   // Focus state for map camera
   const [focusCoordinates, setFocusCoordinates] = useState<{
@@ -76,15 +74,6 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex space-x-3">
-            <Button 
-              onClick={startStory}
-              disabled={isStoryActive}
-              variant="outline"
-              className="inline-flex items-center px-6 py-3 transition-colors"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Tell Our Story
-            </Button>
             <Link href="/plots/new" data-testid="link-add-plot">
               <Button className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
                 <Plus className="w-4 h-4 mr-2" />

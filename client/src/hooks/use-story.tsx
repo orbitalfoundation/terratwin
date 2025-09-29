@@ -30,7 +30,8 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const timeoutRef = useRef<NodeJS.Timeout>();
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioUrlsRef = useRef<Map<string, string>>(new Map());
 
   const storySteps: StoryStep[] = [
     {
@@ -109,24 +110,58 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
     }
   ];
 
-  const speak = useCallback((text: string) => {
-    if (!isSpeaking || !('speechSynthesis' in window)) return;
+  const speak = useCallback(async (text: string) => {
+    if (!isSpeaking) return;
 
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel();
+    // Stop any current audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9;
-    utterance.pitch = 1;
-    utterance.volume = 0.8;
-    
-    utteranceRef.current = utterance;
-    window.speechSynthesis.speak(utterance);
+    try {
+      // Check if we already have this audio cached
+      const cachedUrl = audioUrlsRef.current.get(text);
+      if (cachedUrl) {
+        const audio = new Audio(cachedUrl);
+        audioRef.current = audio;
+        await audio.play();
+        return;
+      }
+
+      // Fetch audio from API
+      const response = await fetch("/api/tts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      if (!response.ok) {
+        console.error("TTS API error:", response.statusText);
+        return;
+      }
+
+      const audioBlob = await response.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // Cache the URL
+      audioUrlsRef.current.set(text, audioUrl);
+      
+      // Play the audio
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      await audio.play();
+    } catch (error) {
+      console.error("Error playing TTS audio:", error);
+    }
   }, [isSpeaking]);
 
   const stopSpeech = useCallback(() => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
     }
   }, []);
 
@@ -189,6 +224,9 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
         clearTimeout(timeoutRef.current);
       }
       stopSpeech();
+      // Clean up cached audio URLs
+      audioUrlsRef.current.forEach(url => URL.revokeObjectURL(url));
+      audioUrlsRef.current.clear();
     };
   }, [stopSpeech]);
 

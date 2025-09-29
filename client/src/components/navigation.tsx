@@ -1,10 +1,14 @@
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
+import { BookOpen } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import ChatInterface from "./chat-interface";
+import { useStory } from "@/hooks/use-story";
 
 export default function Navigation() {
   const [location] = useLocation();
   const [isChatExpanded, setIsChatExpanded] = useState(false);
+  const { startStory, isActive: isStoryActive } = useStory();
 
   return (
     <>
@@ -18,7 +22,17 @@ export default function Navigation() {
                 </div>
               </Link>
             </div>
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={startStory}
+                disabled={isStoryActive}
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                title="Tell Our Story"
+              >
+                <BookOpen className="h-5 w-5" />
+              </Button>
               <ChatInterface 
                 isExpanded={isChatExpanded}
                 onToggle={() => setIsChatExpanded(!isChatExpanded)}
