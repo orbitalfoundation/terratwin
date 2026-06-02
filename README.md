@@ -1,6 +1,10 @@
 # TerraTwin
 
-*A civic simulation and visualization platform for bamboo agroforestry*
+![TerraTwin](terratwin.png)
+
+**[Live demo →](https://orbitalfoundation.github.io/terratwin/)**
+
+*A civic simulation and visualization platform for bamboo agroforestry leveraging Orbital*
 
 ---
 
