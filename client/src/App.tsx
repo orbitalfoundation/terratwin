@@ -1,4 +1,5 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Router } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,8 +11,9 @@ import PlotDetail from "@/pages/plot-detail";
 import Navigation from "@/components/navigation";
 import { StoryProvider } from "@/hooks/use-story";
 import { StoryOverlay } from "@/components/story-overlay";
+import { isLocalMode } from "@/lib/config";
 
-function Router() {
+function AppRoutes() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <StoryOverlay />
@@ -27,13 +29,26 @@ function Router() {
   );
 }
 
+// Local/static mode uses hash routing so GitHub Pages deep links work without a 404.
+// Server mode uses the default browser history routing.
+function AppRouter() {
+  if (isLocalMode) {
+    return (
+      <Router hook={useHashLocation}>
+        <AppRoutes />
+      </Router>
+    );
+  }
+  return <AppRoutes />;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <StoryProvider>
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <AppRouter />
         </TooltipProvider>
       </StoryProvider>
     </QueryClientProvider>

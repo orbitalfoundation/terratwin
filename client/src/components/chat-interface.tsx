@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessageCircle, Send, Minimize2, Mic, MicOff } from 'lucide-react';
+import { MessageCircle, Send, Minimize2, Mic, MicOff, KeyRound, Check } from 'lucide-react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
+import { isLocalMode } from '@/lib/config';
+import { GROQ_KEY_STORAGE_KEY } from '@/lib/local-api-router';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -32,6 +34,9 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
   const [showInitialAnimation, setShowInitialAnimation] = useState(true);
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [groqKeyDraft, setGroqKeyDraft] = useState('');
+  const [groqKeySaved, setGroqKeySaved] = useState(() => !!localStorage.getItem(GROQ_KEY_STORAGE_KEY));
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const [location, setLocation] = useLocation();
@@ -121,6 +126,18 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
 
     return () => clearTimeout(timer);
   }, []);
+
+  const saveGroqKey = () => {
+    const trimmed = groqKeyDraft.trim();
+    if (trimmed) {
+      localStorage.setItem(GROQ_KEY_STORAGE_KEY, trimmed);
+    } else {
+      localStorage.removeItem(GROQ_KEY_STORAGE_KEY);
+    }
+    setGroqKeySaved(!!trimmed);
+    setShowKeyInput(false);
+    setGroqKeyDraft('');
+  };
 
   // Simulation control reference (will be passed in from parent)
   const simulationRef = useRef<any>(null);
@@ -339,17 +356,57 @@ export default function ChatInterface({ isExpanded, onToggle }: ChatInterfacePro
         <div className="flex items-center space-x-2">
           <MessageCircle className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium text-card-foreground">AI Assistant</span>
+          {isLocalMode && (
+            <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+              {groqKeySaved ? 'Groq' : 'demo'}
+            </span>
+          )}
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onToggle}
-          className="text-muted-foreground hover:text-foreground"
-          data-testid="button-minimize-chat"
-        >
-          <Minimize2 className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center space-x-1">
+          {isLocalMode && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setShowKeyInput(v => !v); setGroqKeyDraft(localStorage.getItem(GROQ_KEY_STORAGE_KEY) ?? ''); }}
+              className="text-muted-foreground hover:text-foreground"
+              title="Set Groq API key for AI chat"
+              data-testid="button-set-groq-key"
+            >
+              {groqKeySaved ? <Check className="w-3.5 h-3.5 text-green-500" /> : <KeyRound className="w-3.5 h-3.5" />}
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggle}
+            className="text-muted-foreground hover:text-foreground"
+            data-testid="button-minimize-chat"
+          >
+            <Minimize2 className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
+      {/* Groq key input panel (local mode only) */}
+      {isLocalMode && showKeyInput && (
+        <div className="p-3 border-b border-border bg-muted/40 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            Paste a free <a href="https://console.groq.com" target="_blank" rel="noopener noreferrer" className="underline">Groq API key</a> to enable AI chat. Stored in your browser only.
+          </p>
+          <div className="flex space-x-2">
+            <Input
+              value={groqKeyDraft}
+              onChange={e => setGroqKeyDraft(e.target.value)}
+              placeholder="gsk_..."
+              className="flex-1 text-xs font-mono"
+              type="password"
+              data-testid="input-groq-key"
+            />
+            <Button size="sm" onClick={saveGroqKey} data-testid="button-save-groq-key">
+              Save
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="h-48 overflow-y-auto p-3 space-y-3" data-testid="chat-messages">

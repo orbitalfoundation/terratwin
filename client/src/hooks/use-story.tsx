@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, useRef } f
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import type { Plot } from "@shared/schema";
+import { isLocalMode } from "@/lib/config";
 
 interface StoryStep {
   id: number;
@@ -114,7 +115,19 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
   const speak = useCallback(async (text: string): Promise<void> => {
     if (!isSpeaking) return;
 
-    // Stop any current audio
+    if (isLocalMode) {
+      // Web Speech API — no server required
+      return new Promise((resolve) => {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.92;
+        utterance.onend = () => resolve();
+        utterance.onerror = () => resolve();
+        window.speechSynthesis.speak(utterance);
+      });
+    }
+
+    // Server mode: OpenAI TTS via /api/tts
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -122,19 +135,15 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      // Check if we already have this audio cached
       const cachedUrl = audioUrlsRef.current.get(text);
       let audioUrl: string;
-      
+
       if (cachedUrl) {
         audioUrl = cachedUrl;
       } else {
-        // Fetch audio from API
         const response = await fetch("/api/tts", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ text }),
         });
 
@@ -145,26 +154,21 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
 
         const audioBlob = await response.blob();
         audioUrl = URL.createObjectURL(audioBlob);
-        
-        // Cache the URL
         audioUrlsRef.current.set(text, audioUrl);
       }
-      
-      // Play the audio and wait for completion
+
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
-      
+
       return new Promise((resolve) => {
-        audio.addEventListener('ended', () => {
-          resolve();
-        });
+        audio.addEventListener('ended', () => resolve());
         audio.addEventListener('error', () => {
           console.error('Audio playback error');
-          resolve(); // Continue even if audio fails
+          resolve();
         });
         audio.play().catch(error => {
           console.error('Error playing audio:', error);
-          resolve(); // Continue even if play fails
+          resolve();
         });
       });
     } catch (error) {
@@ -173,10 +177,14 @@ export function StoryProvider({ children }: { children: React.ReactNode }) {
   }, [isSpeaking]);
 
   const stopSpeech = useCallback(() => {
+    if (isLocalMode) {
+      window.speechSynthesis.cancel();
+      return;
+    }
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
-      audioRef.current.src = ''; // Clear the source to stop loading
+      audioRef.current.src = '';
       audioRef.current = null;
     }
   }, []);

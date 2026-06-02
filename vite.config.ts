@@ -27,6 +27,8 @@ export default defineConfig({
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
+  // Use relative base for GitHub Pages static builds; default '/' for server mode
+  base: process.env.GITHUB_PAGES ? './' : '/',
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
