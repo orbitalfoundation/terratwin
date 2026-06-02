@@ -53,9 +53,17 @@ The simulation core uses [Orbital Foundation](https://orbital.foundation), a fra
 
 The output tracks biomass accumulation, carbon sequestration, harvest yield, economic return, and ecosystem health indicators over the full simulation period. The model is designed to be sensitive to the combinations of variables in ways a spreadsheet formula would miss — soil feedback loops, the compounding benefit of legume intercropping on nitrogen over multi-year cycles, the interaction between pest load and intervention timing.
 
-### 4. A storytelling interface
+### 4. Conversational and narrative interfaces
 
-The application is designed to be run in front of an audience. A built-in story mode steps through a narrated walkthrough — navigating between pages, scrolling to relevant components, and speaking each caption aloud. In server mode, narration uses OpenAI TTS; in local/static mode it uses the browser's built-in `speechSynthesis` API. The story is designed to turn a technically complex tool into a five-minute demo that a farmer cooperative or development organization can follow.
+There is a broader shift happening in how people interact with complex software, and it matters particularly for tools aimed at non-technical users. Traditional GIS and agricultural modeling tools require training, expertise, and patience. The emergence of capable language models changes the calculus: a farmer in Mindanao who has never opened a spreadsheet can now ask a question in plain language and get a useful answer about their plot.
+
+TerraTwin leans into this in two ways.
+
+The **AI chat interface** lets users ask questions about their plots, get agronomic guidance, and trigger navigation actions conversationally — "show me the Bukidnon plot" or "start the simulation." The assistant understands the current page context and the available plots, so responses are grounded rather than generic. In server mode this uses GPT; in local/static mode it routes to the Groq API (Llama 3) directly from the browser, with no server required. The principle is meeting people where they are: the interface adapts to the user rather than requiring the user to adapt to the interface.
+
+The **story mode** takes this further for presentation contexts. Rather than handing a stakeholder a dashboard and hoping they can orient themselves, the app narrates its own walkthrough — advancing through pages, scrolling to relevant components, and speaking each caption aloud. In local mode this uses the browser's built-in `speechSynthesis` API; in server mode it uses OpenAI TTS for higher-quality voice. A farmer cooperative can show this to a development bank or carbon registry without needing a technical presenter in the room.
+
+The broader point is that the value of a modeling tool is not in its computational sophistication but in whether the right people can act on its output. AI-powered interfaces lower the floor dramatically — making it possible to build tools that are genuinely usable by the farmers, tribal leaders, city councils, and regional cooperatives who need them most, rather than only by the consultants they hire.
 
 ---
 
