@@ -4,3 +4,5 @@ export const isLocalMode = import.meta.env.VITE_APP_MODE !== 'server';
 
 // Cesium ion API key — set VITE_CESIUM_KEY at build time for the map to work
 export const cesiumKey = import.meta.env.VITE_CESIUM_KEY ?? '';
+
+console.info(`[config] mode=${isLocalMode ? 'local' : 'server'} cesiumKey=${cesiumKey ? '✓ set' : '✗ missing'}`);

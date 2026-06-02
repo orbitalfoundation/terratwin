@@ -111,7 +111,7 @@ export async function localApiRouter(method: string, url: string, body?: unknown
 
   // Cesium key
   if (method === 'GET' && path === '/api/cesium-key') {
-    return makeResponse({ key: cesiumKey });
+    return makeResponse({ cesiumKey: cesiumKey || null });
   }
 
   // AI chat — Groq in browser or polite stub
@@ -129,5 +129,6 @@ export async function localApiRouter(method: string, url: string, body?: unknown
     return makeResponse({ ok: true });
   }
 
+  console.warn(`localApiRouter: unhandled ${method} ${url}`);
   return makeResponse({ message: 'Not found' }, 404);
 }

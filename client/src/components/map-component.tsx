@@ -157,7 +157,11 @@ export default function MapComponent({
 
   // Initialize the 3D engine
   useEffect(() => {
-    if (!containerRef.current || !cesiumToken) return;
+    if (!containerRef.current) return;
+    if (!cesiumToken) {
+      console.warn('MapComponent: no Cesium token — set VITE_CESIUM_KEY in .env.local (local mode) or CESIUM_KEY on the server');
+      return;
+    }
 
     let isActive = true;
 
