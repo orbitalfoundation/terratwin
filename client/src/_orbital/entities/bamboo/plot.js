@@ -1,8 +1,6 @@
 
 import { deepClone } from '../../utils/deepClone.js';
 
-import { sys } from '../../services-sys/sys.js';
-
 import { prototypical_entity } from './entity.js';
 import { prototypical_dendrocalamus_asper_clump } from './clump.js';
 import { prototypical_coffee_row } from './coffeerow.js';
@@ -177,7 +175,7 @@ prototypical_plot.oninit = function() {
 			clump.volume.xyz = [finalX, elevation, finalZ]
 			plot.children.push(clump)
 			clump.plot = plot // Pass plot reference for DEM access
-			sys(clump)
+			clump.oninit(plot)
 			
 			if (counter % 50 === 0) {
 				console.log(`  Created ${counter} clumps...`)
@@ -227,7 +225,7 @@ prototypical_plot.oninit = function() {
 				coffeeRow.volume.xyz = [finalX, elevation, finalZ]
 				plot.children.push(coffeeRow)
 				coffeeRow.plot = plot // Pass plot reference for DEM access
-				sys(coffeeRow)
+				coffeeRow.onreset(plot)
 				coffeeCounter++
 			}
 		}

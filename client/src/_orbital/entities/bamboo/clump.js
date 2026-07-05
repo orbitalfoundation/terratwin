@@ -1,7 +1,6 @@
 import { prototypical_entity } from './entity.js';
 import { prototypical_dendrocalamus_asper_culm } from './culm.js';
 
-import { sys } from '../../services-sys/sys.js';
 import { deepClone } from '../../utils/deepClone.js';
 
 // A dendrocalamus asper clump prototype - clone to use
@@ -105,10 +104,13 @@ prototypical_dendrocalamus_asper_clump.oninit = function(plot) {
 		// At center: 100% speed, at edge: 70% speed (less variation due to tighter radius)
 		culm.culm.growthSpeedModifier = 1.0 - (distance / culmDistributionRadius) * 0.3
 		
-		// Calculate outward tilt from clump center
-		// Tilt increases with distance from center, up to about 10 degrees for outer culms
+		// Calculate outward tilt from clump center. Real clumping bamboo
+		// (sympodial, like D. asper) sends new culms up at the clump edge
+		// leaning away from the center - a vase/fountain shape, never inward.
+		// The yaw that makes pitch-about-X lean along the position direction
+		// (cos a, sin a) is PI/2 - a given the renderer's YXZ euler order.
 		const tiltAngle = (distance / culmDistributionRadius) * 0.174533; // 10 degrees in radians
-		const tiltDirection = angle; // Same as position angle
+		const tiltDirection = Math.PI / 2 - angle;
 		
 		// Store initial tilt for dynamic adjustment during growth
 		culm.culm.initialTiltAngle = tiltAngle
@@ -127,7 +129,6 @@ prototypical_dendrocalamus_asper_clump.oninit = function(plot) {
 		// (coloring is owned entirely by the culm's own onstep)
 
 		clump.children.push(culm)
-		sys(culm)
 
 		counter++
 	}

@@ -1,8 +1,6 @@
 
 import { deepClone } from '../../utils/deepClone.js';
 
-import { sys } from '../../services-sys/sys.js';
-
 import { prototypical_entity } from './entity.js';
 import { prototypical_coffee_plant } from './coffee.js';
 
@@ -84,7 +82,6 @@ prototypical_coffee_row.onreset = function(plot) {
 		plant.coffee.age = 0
 		row.coffeerow.totalCostJoules += plant.coffee.JOULES_PER_PLANTING
 		row.children.push(plant)
-		sys(plant)
 	}
 }
 

@@ -19,10 +19,10 @@ export const prototypical_dendrocalamus_asper_culm = {
                 JOULES_PER_HARVEST: 3600000, // 1 kWh = 3.6 MJ (rough estimate for harvesting energy)
 
                 // Growth parameters
-                MAX_HEIGHT_METERS: 30,        // Giant bamboo can reach 30m
+                MAX_HEIGHT_METERS: 15,       // rendered height target (species can hit 30m; halved for scene readability)
                 GROWTH_RATE: 0.02,           // Controls steepness of S-curve (reaches ~95% height by 2 years)
                 GROWTH_MIDPOINT_DAYS: 180,   // Days when growth is fastest (6 months)
-                WIDTH_TO_HEIGHT_RATIO: 0.005, // Roughly 15cm diameter at full height
+                WIDTH_TO_HEIGHT_RATIO: 0.009, // ~13cm radius at full height
 
                 // Position-based growth modifiers
                 distanceFromCenter: 0,        // Distance from clump center (meters)
@@ -70,11 +70,13 @@ prototypical_dendrocalamus_asper_culm.onstep = function(daysElapsed) {
                 0                               // Roll: no roll
         ]
 
-        // Color: a tight, realistic bamboo palette driven by age.
-        // Young shoots are dark sheathed brown-green, culms green up as they
-        // mature, then drift toward yellow-olive; a few culms go golden.
-        if (self.culm._hueShift === undefined) {
-                // deterministic per-culm variation, computed once from position
+        // Color. Real groves show far more variety than "green with a few
+        // yellow stalks": most culms sit in a green..yellow-green band, but
+        // there are golden/straw culms, older brown-olive ones, and - very
+        // characteristic of D. asper - younger culms wearing a powdery
+        // gray-green bloom. Each culm picks a lifetime identity once
+        // (deterministic from position) and blends into it as it matures.
+        if (self.culm._variant === undefined) {
                 const seedX = Math.floor(self.volume.xyz[0] * 1000)
                 const seedZ = Math.floor(self.volume.xyz[2] * 1000)
                 const seed = (seedX * 73856093) ^ (seedZ * 19349663)
@@ -82,32 +84,39 @@ prototypical_dendrocalamus_asper_culm.onstep = function(daysElapsed) {
                         const s = Math.sin(seed * 0.0001 + n * 12.9898) * 43758.5453
                         return s - Math.floor(s)
                 }
-                self.culm._hueShift = (rand(1) - 0.5) * 14   // ±7 degrees of hue
-                self.culm._litShift = (rand(2) - 0.5) * 0.10 // ±5% lightness
-                self.culm._golden = rand(3) < 0.07           // occasional golden culm
+                const roll = rand(4)
+                let v
+                if (roll < 0.52) {        // fresh to deep greens
+                        v = { hue: 84 + rand(5) * 22, sat: 0.32 + rand(6) * 0.16, lit: 0.30 + rand(7) * 0.10 }
+                } else if (roll < 0.72) { // yellow-greens
+                        v = { hue: 62 + rand(5) * 16, sat: 0.36 + rand(6) * 0.14, lit: 0.34 + rand(7) * 0.10 }
+                } else if (roll < 0.83) { // golden / straw
+                        v = { hue: 46 + rand(5) * 10, sat: 0.42 + rand(6) * 0.14, lit: 0.42 + rand(7) * 0.12 }
+                } else if (roll < 0.93) { // powdery gray-green bloom
+                        v = { hue: 96 + rand(5) * 18, sat: 0.10 + rand(6) * 0.10, lit: 0.44 + rand(7) * 0.12 }
+                } else {                  // brown-olive elders
+                        v = { hue: 44 + rand(5) * 14, sat: 0.24 + rand(6) * 0.10, lit: 0.27 + rand(7) * 0.07 }
+                }
+                self.culm._variant = v
         }
 
+        const v = self.culm._variant
         const ageYears = self.culm.age / 365
-        let hue, sat, lit
-        if (ageYears < 0.25) {
-                // emerging shoot, still wearing dark sheaths
-                const t = ageYears / 0.25
-                hue = 68 + t * 26; sat = 0.30 + t * 0.10; lit = 0.24 + t * 0.10
-        } else if (ageYears < 2.5) {
-                // fresh green culm
-                hue = 94; sat = 0.40; lit = 0.34
-        } else {
-                // slow drift toward yellow-olive; golden culms go all the way
-                const t = Math.min((ageYears - 2.5) / 3, 1)
-                hue = 94 - t * (self.culm._golden ? 42 : 22)
-                sat = 0.40 + t * (self.culm._golden ? 0.10 : 0)
-                lit = 0.34 + t * (self.culm._golden ? 0.13 : 0.05)
-        }
-        hue += self.culm._hueShift
-        lit += self.culm._litShift
+
+        // blend from dark sheathed shoot into the culm's identity over year one
+        const t = Math.min(ageYears / 1.0, 1)
+        let hue = 70 + (v.hue - 70) * t
+        let sat = 0.30 + (v.sat - 0.30) * t
+        let lit = 0.24 + (v.lit - 0.24) * t
+
+        // old culms drift slightly warmer and paler
+        const m = Math.max(0, Math.min((ageYears - 3) / 4, 1))
+        hue -= m * 8
+        lit += m * 0.04
+
         // culms at the clump edge catch a touch more light
         lit += Math.min(self.culm.distanceFromCenter / 2, 1.0) * 0.03
-        lit = Math.max(0.15, Math.min(0.6, lit))
+        lit = Math.max(0.15, Math.min(0.62, lit))
 
         self.volume.color = hslToHex(hue / 360, sat, lit)
 }
